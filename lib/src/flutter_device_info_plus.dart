@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
-import 'models/models.dart';
 import 'exceptions.dart';
+import 'models/models.dart';
 
 /// Enhanced device information with detailed hardware specs and capabilities.
 ///
@@ -62,7 +62,9 @@ class FlutterDeviceInfoPlus {
   ///
   /// Returns the platform name: 'android', 'ios', 'windows', 'macos', 'linux', or 'web'.
   String getCurrentPlatform() {
-    if (kIsWeb) return 'web';
+    if (kIsWeb) {
+      return 'web';
+    }
 
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
@@ -97,26 +99,26 @@ class FlutterDeviceInfoPlus {
       switch (defaultTargetPlatform) {
         case TargetPlatform.android:
         case TargetPlatform.iOS:
-          return BatteryInfo(
+          return const BatteryInfo(
             batteryLevel: 85,
             chargingStatus: 'charging',
             batteryHealth: 'good',
             batteryCapacity: 3000,
-            batteryVoltage: 3.8,
-            batteryTemperature: 25.0,
+            batteryVoltage: 4,
+            batteryTemperature: 25,
           );
         case TargetPlatform.windows:
         case TargetPlatform.macOS:
         case TargetPlatform.linux:
         case TargetPlatform.fuchsia:
           // Desktop/server platforms may have battery info for laptops
-          return BatteryInfo(
+          return const BatteryInfo(
             batteryLevel: 95,
             chargingStatus: 'full',
             batteryHealth: 'good',
             batteryCapacity: 5000,
-            batteryVoltage: 4.2,
-            batteryTemperature: 23.0,
+            batteryVoltage: 4,
+            batteryTemperature: 23,
           );
       }
     } catch (e) {
@@ -191,7 +193,7 @@ class FlutterDeviceInfoPlus {
         totalStorageSpace: 137438953472, // 128GB mock
         availableStorageSpace: 68719476736, // 64GB mock
         usedStorageSpace: 68719476736, // 64GB mock
-        memoryUsagePercentage: 50.0,
+        memoryUsagePercentage: 50,
       ),
       displayInfo: const DisplayInfo(
         screenWidth:
@@ -199,9 +201,9 @@ class FlutterDeviceInfoPlus {
         screenHeight:
             2340, // Mock data - actual implementation would use platform channels
         pixelDensity:
-            3.0, // Mock data - actual implementation would use platform channels
-        refreshRate: 120.0, // Mock data
-        screenSizeInches: 6.7, // Mock data
+            3, // Mock data - actual implementation would use platform channels
+        refreshRate: 120, // Mock data
+        screenSizeInches: 6, // Mock data
         orientation: 'portrait',
         isHdr: true,
       ),
@@ -245,14 +247,14 @@ class FlutterDeviceInfoPlus {
         totalStorageSpace: 137438953472, // 128GB mock
         availableStorageSpace: 68719476736, // 64GB mock
         usedStorageSpace: 68719476736, // 64GB mock
-        memoryUsagePercentage: 50.0,
+        memoryUsagePercentage: 50,
       ),
       displayInfo: const DisplayInfo(
         screenWidth: 1170,
         screenHeight: 2532,
-        pixelDensity: 3.0,
-        refreshRate: 120.0,
-        screenSizeInches: 6.1,
+        pixelDensity: 3,
+        refreshRate: 120,
+        screenSizeInches: 6,
         orientation: 'portrait',
         isHdr: true,
       ),
@@ -295,18 +297,17 @@ class FlutterDeviceInfoPlus {
         totalStorageSpace: 1099511627776, // 1TB mock
         availableStorageSpace: 549755813888, // 512GB mock
         usedStorageSpace: 549755813888, // 512GB mock
-        memoryUsagePercentage: 50.0,
+        memoryUsagePercentage: 50,
       ),
       displayInfo: const DisplayInfo(
         screenWidth: 1920,
         screenHeight: 1080,
-        pixelDensity: 1.0,
-        refreshRate: 60.0,
-        screenSizeInches: 24.0,
+        pixelDensity: 1,
+        refreshRate: 60,
+        screenSizeInches: 24,
         orientation: 'landscape',
         isHdr: false,
       ),
-      batteryInfo: null, // Desktop PCs typically don't have batteries
       sensorInfo: sensorInfo,
       networkInfo: networkInfo,
       securityInfo: const SecurityInfo(
@@ -346,14 +347,14 @@ class FlutterDeviceInfoPlus {
         totalStorageSpace: 1099511627776, // 1TB mock
         availableStorageSpace: 549755813888, // 512GB mock
         usedStorageSpace: 549755813888, // 512GB mock
-        memoryUsagePercentage: 50.0,
+        memoryUsagePercentage: 50,
       ),
       displayInfo: const DisplayInfo(
         screenWidth: 3024,
         screenHeight: 1964,
-        pixelDensity: 2.0,
-        refreshRate: 120.0,
-        screenSizeInches: 14.2,
+        pixelDensity: 2,
+        refreshRate: 120,
+        screenSizeInches: 14,
         orientation: 'landscape',
         isHdr: true,
       ),
@@ -396,18 +397,17 @@ class FlutterDeviceInfoPlus {
         totalStorageSpace: 1099511627776, // 1TB mock
         availableStorageSpace: 549755813888, // 512GB mock
         usedStorageSpace: 549755813888, // 512GB mock
-        memoryUsagePercentage: 50.0,
+        memoryUsagePercentage: 50,
       ),
       displayInfo: const DisplayInfo(
         screenWidth: 1920,
         screenHeight: 1080,
-        pixelDensity: 1.0,
-        refreshRate: 60.0,
-        screenSizeInches: 24.0,
+        pixelDensity: 1,
+        refreshRate: 60,
+        screenSizeInches: 24,
         orientation: 'landscape',
         isHdr: false,
       ),
-      batteryInfo: null, // Desktop Linux typically doesn't have batteries
       sensorInfo: sensorInfo,
       networkInfo: networkInfo,
       securityInfo: const SecurityInfo(
@@ -446,18 +446,17 @@ class FlutterDeviceInfoPlus {
         totalStorageSpace: 1073741824, // 1GB browser storage mock
         availableStorageSpace: 536870912, // 512MB mock
         usedStorageSpace: 536870912, // 512MB mock
-        memoryUsagePercentage: 50.0,
+        memoryUsagePercentage: 50,
       ),
       displayInfo: const DisplayInfo(
         screenWidth: 1920,
         screenHeight: 1080,
-        pixelDensity: 1.0,
-        refreshRate: 60.0,
-        screenSizeInches: 24.0,
+        pixelDensity: 1,
+        refreshRate: 60,
+        screenSizeInches: 24,
         orientation: 'landscape',
         isHdr: false,
       ),
-      batteryInfo: null, // Web platform doesn't provide battery info
       sensorInfo: sensorInfo,
       networkInfo: networkInfo,
       securityInfo: const SecurityInfo(

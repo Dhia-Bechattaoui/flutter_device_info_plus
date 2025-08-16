@@ -1,7 +1,10 @@
+import 'package:flutter/foundation.dart';
+
 /// Information about the device's display and screen.
 ///
 /// Contains details about screen resolution, pixel density, refresh rate,
 /// and display capabilities.
+@immutable
 class DisplayInfo {
   /// Creates a new [DisplayInfo] instance.
   const DisplayInfo({
@@ -62,21 +65,22 @@ class DisplayInfo {
     double? screenSizeInches,
     String? orientation,
     bool? isHdr,
-  }) {
-    return DisplayInfo(
-      screenWidth: screenWidth ?? this.screenWidth,
-      screenHeight: screenHeight ?? this.screenHeight,
-      pixelDensity: pixelDensity ?? this.pixelDensity,
-      refreshRate: refreshRate ?? this.refreshRate,
-      screenSizeInches: screenSizeInches ?? this.screenSizeInches,
-      orientation: orientation ?? this.orientation,
-      isHdr: isHdr ?? this.isHdr,
-    );
-  }
+  }) =>
+      DisplayInfo(
+        screenWidth: screenWidth ?? this.screenWidth,
+        screenHeight: screenHeight ?? this.screenHeight,
+        pixelDensity: pixelDensity ?? this.pixelDensity,
+        refreshRate: refreshRate ?? this.refreshRate,
+        screenSizeInches: screenSizeInches ?? this.screenSizeInches,
+        orientation: orientation ?? this.orientation,
+        isHdr: isHdr ?? this.isHdr,
+      );
 
   @override
   bool operator ==(Object other) {
-    if (identical(this, other)) return true;
+    if (identical(this, other)) {
+      return true;
+    }
 
     return other is DisplayInfo &&
         other.screenWidth == screenWidth &&
@@ -89,28 +93,24 @@ class DisplayInfo {
   }
 
   @override
-  int get hashCode {
-    return Object.hash(
-      screenWidth,
-      screenHeight,
-      pixelDensity,
-      refreshRate,
-      screenSizeInches,
-      orientation,
-      isHdr,
-    );
-  }
+  int get hashCode => Object.hash(
+        screenWidth,
+        screenHeight,
+        pixelDensity,
+        refreshRate,
+        screenSizeInches,
+        orientation,
+        isHdr,
+      );
 
   @override
-  String toString() {
-    return 'DisplayInfo('
-        'screenWidth: $screenWidth, '
-        'screenHeight: $screenHeight, '
-        'pixelDensity: $pixelDensity, '
-        'refreshRate: $refreshRate, '
-        'screenSizeInches: $screenSizeInches, '
-        'orientation: $orientation, '
-        'isHdr: $isHdr'
-        ')';
-  }
+  String toString() => 'DisplayInfo('
+      'screenWidth: $screenWidth, '
+      'screenHeight: $screenHeight, '
+      'pixelDensity: $pixelDensity, '
+      'refreshRate: $refreshRate, '
+      'screenSizeInches: $screenSizeInches, '
+      'orientation: $orientation, '
+      'isHdr: $isHdr'
+      ')';
 }

@@ -1,12 +1,12 @@
-import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_device_info_plus/flutter_device_info_plus.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('FlutterDeviceInfoPlus', () {
     late FlutterDeviceInfoPlus deviceInfo;
 
     setUp(() {
-      deviceInfo = FlutterDeviceInfoPlus();
+      deviceInfo = const FlutterDeviceInfoPlus();
     });
 
     group('getDeviceInfo', () {
@@ -68,8 +68,9 @@ void main() {
         final platform = deviceInfo.getCurrentPlatform();
         expect(platform, isA<String>());
         expect(
-            ['android', 'ios', 'windows', 'macos', 'linux', 'web', 'fuchsia'],
-            contains(platform));
+          ['android', 'ios', 'windows', 'macos', 'linux', 'web', 'fuchsia'],
+          contains(platform),
+        );
       });
     });
   });
@@ -98,14 +99,14 @@ void main() {
           totalStorageSpace: 1099511627776,
           availableStorageSpace: 549755813888,
           usedStorageSpace: 549755813888,
-          memoryUsagePercentage: 50.0,
+          memoryUsagePercentage: 50,
         ),
         displayInfo: DisplayInfo(
           screenWidth: 1920,
           screenHeight: 1080,
-          pixelDensity: 1.0,
-          refreshRate: 60.0,
-          screenSizeInches: 24.0,
+          pixelDensity: 1,
+          refreshRate: 60,
+          screenSizeInches: 24,
           orientation: 'landscape',
           isHdr: false,
         ),
@@ -163,14 +164,14 @@ void main() {
           totalStorageSpace: 1099511627776,
           availableStorageSpace: 549755813888,
           usedStorageSpace: 549755813888,
-          memoryUsagePercentage: 50.0,
+          memoryUsagePercentage: 50,
         ),
         displayInfo: DisplayInfo(
           screenWidth: 1920,
           screenHeight: 1080,
-          pixelDensity: 1.0,
-          refreshRate: 60.0,
-          screenSizeInches: 24.0,
+          pixelDensity: 1,
+          refreshRate: 60,
+          screenSizeInches: 24,
           orientation: 'landscape',
           isHdr: false,
         ),
@@ -227,14 +228,14 @@ void main() {
           totalStorageSpace: 1099511627776,
           availableStorageSpace: 549755813888,
           usedStorageSpace: 549755813888,
-          memoryUsagePercentage: 50.0,
+          memoryUsagePercentage: 50,
         ),
         displayInfo: DisplayInfo(
           screenWidth: 1920,
           screenHeight: 1080,
-          pixelDensity: 1.0,
-          refreshRate: 60.0,
-          screenSizeInches: 24.0,
+          pixelDensity: 1,
+          refreshRate: 60,
+          screenSizeInches: 24,
           orientation: 'landscape',
           isHdr: false,
         ),
@@ -279,14 +280,14 @@ void main() {
           totalStorageSpace: 1099511627776,
           availableStorageSpace: 549755813888,
           usedStorageSpace: 549755813888,
-          memoryUsagePercentage: 50.0,
+          memoryUsagePercentage: 50,
         ),
         displayInfo: DisplayInfo(
           screenWidth: 1920,
           screenHeight: 1080,
-          pixelDensity: 1.0,
-          refreshRate: 60.0,
-          screenSizeInches: 24.0,
+          pixelDensity: 1,
+          refreshRate: 60,
+          screenSizeInches: 24,
           orientation: 'landscape',
           isHdr: false,
         ),
@@ -338,7 +339,7 @@ void main() {
         totalStorageSpace: 1099511627776, // 1TB
         availableStorageSpace: 549755813888, // 512GB
         usedStorageSpace: 549755813888, // 512GB
-        memoryUsagePercentage: 50.0,
+        memoryUsagePercentage: 50,
       );
 
       expect(memory.totalPhysicalMemoryMB, closeTo(8192, 1));
@@ -351,8 +352,8 @@ void main() {
       const display = DisplayInfo(
         screenWidth: 1920,
         screenHeight: 1080,
-        pixelDensity: 2.0,
-        refreshRate: 120.0,
+        pixelDensity: 2,
+        refreshRate: 120,
         screenSizeInches: 6.1,
         orientation: 'portrait',
         isHdr: true,
@@ -373,7 +374,7 @@ void main() {
         batteryHealth: 'good',
         batteryCapacity: 3000,
         batteryVoltage: 3.8,
-        batteryTemperature: 25.0,
+        batteryTemperature: 25,
       );
 
       expect(battery.isCharging, true);
@@ -444,7 +445,9 @@ void main() {
       expect(exception.message, 'Test error');
       expect(exception.code, 'ERR001');
       expect(
-          exception.toString(), 'PlatformException: Test error (code: ERR001)');
+        exception.toString(),
+        'PlatformException: Test error (code: ERR001)',
+      );
     });
 
     test('UnsupportedFeatureException should format with feature', () {
@@ -454,8 +457,10 @@ void main() {
       );
       expect(exception.message, 'Feature not supported');
       expect(exception.feature, 'battery_info');
-      expect(exception.toString(),
-          'UnsupportedFeatureException: Feature not supported (feature: battery_info)');
+      expect(
+        exception.toString(),
+        'UnsupportedFeatureException: Feature not supported (feature: battery_info)',
+      );
     });
 
     test('PermissionException should format with permission', () {
@@ -465,8 +470,10 @@ void main() {
       );
       expect(exception.message, 'Permission required');
       expect(exception.permission, 'android.permission.BATTERY_STATS');
-      expect(exception.toString(),
-          'PermissionException: Permission required (permission: android.permission.BATTERY_STATS)');
+      expect(
+        exception.toString(),
+        'PermissionException: Permission required (permission: android.permission.BATTERY_STATS)',
+      );
     });
 
     test('ParseException should format with raw data', () {
@@ -476,8 +483,10 @@ void main() {
       );
       expect(exception.message, 'Failed to parse');
       expect(exception.rawData, {'invalid': 'data'});
-      expect(exception.toString(),
-          'ParseException: Failed to parse (raw data: {invalid: data})');
+      expect(
+        exception.toString(),
+        'ParseException: Failed to parse (raw data: {invalid: data})',
+      );
     });
   });
 }

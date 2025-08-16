@@ -1,6 +1,9 @@
+import 'package:flutter/foundation.dart';
+
 /// Information about available sensors on the device.
 ///
 /// Contains details about sensor types and their capabilities.
+@immutable
 class SensorInfo {
   /// Creates a new [SensorInfo] instance.
   const SensorInfo({
@@ -48,11 +51,10 @@ class SensorInfo {
   /// Creates a copy of this [SensorInfo] with the given fields replaced.
   SensorInfo copyWith({
     List<SensorType>? availableSensors,
-  }) {
-    return SensorInfo(
-      availableSensors: availableSensors ?? this.availableSensors,
-    );
-  }
+  }) =>
+      SensorInfo(
+        availableSensors: availableSensors ?? this.availableSensors,
+      );
 
   @override
   bool operator ==(Object other) {
@@ -63,20 +65,16 @@ class SensorInfo {
   }
 
   @override
-  int get hashCode {
-    return Object.hashAll(availableSensors);
-  }
+  int get hashCode => Object.hashAll(availableSensors);
 
   @override
-  String toString() {
-    return 'SensorInfo(availableSensors: $availableSensors)';
-  }
+  String toString() => 'SensorInfo(availableSensors: $availableSensors)';
 
   bool _listEquals<T>(List<T>? a, List<T>? b) {
     if (a == null) return b == null;
     if (b == null || a.length != b.length) return false;
     if (identical(a, b)) return true;
-    for (int index = 0; index < a.length; index += 1) {
+    for (var index = 0; index < a.length; index += 1) {
       if (a[index] != b[index]) return false;
     }
     return true;

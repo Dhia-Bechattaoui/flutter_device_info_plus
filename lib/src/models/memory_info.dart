@@ -1,6 +1,9 @@
+import 'package:flutter/foundation.dart';
+
 /// Information about the device's memory and storage.
 ///
 /// Contains details about RAM, storage space, and memory usage.
+@immutable
 class MemoryInfo {
   /// Creates a new [MemoryInfo] instance.
   const MemoryInfo({
@@ -59,23 +62,24 @@ class MemoryInfo {
     int? availableStorageSpace,
     int? usedStorageSpace,
     double? memoryUsagePercentage,
-  }) {
-    return MemoryInfo(
-      totalPhysicalMemory: totalPhysicalMemory ?? this.totalPhysicalMemory,
-      availablePhysicalMemory:
-          availablePhysicalMemory ?? this.availablePhysicalMemory,
-      totalStorageSpace: totalStorageSpace ?? this.totalStorageSpace,
-      availableStorageSpace:
-          availableStorageSpace ?? this.availableStorageSpace,
-      usedStorageSpace: usedStorageSpace ?? this.usedStorageSpace,
-      memoryUsagePercentage:
-          memoryUsagePercentage ?? this.memoryUsagePercentage,
-    );
-  }
+  }) =>
+      MemoryInfo(
+        totalPhysicalMemory: totalPhysicalMemory ?? this.totalPhysicalMemory,
+        availablePhysicalMemory:
+            availablePhysicalMemory ?? this.availablePhysicalMemory,
+        totalStorageSpace: totalStorageSpace ?? this.totalStorageSpace,
+        availableStorageSpace:
+            availableStorageSpace ?? this.availableStorageSpace,
+        usedStorageSpace: usedStorageSpace ?? this.usedStorageSpace,
+        memoryUsagePercentage:
+            memoryUsagePercentage ?? this.memoryUsagePercentage,
+      );
 
   @override
   bool operator ==(Object other) {
-    if (identical(this, other)) return true;
+    if (identical(this, other)) {
+      return true;
+    }
 
     return other is MemoryInfo &&
         other.totalPhysicalMemory == totalPhysicalMemory &&
@@ -87,26 +91,22 @@ class MemoryInfo {
   }
 
   @override
-  int get hashCode {
-    return Object.hash(
-      totalPhysicalMemory,
-      availablePhysicalMemory,
-      totalStorageSpace,
-      availableStorageSpace,
-      usedStorageSpace,
-      memoryUsagePercentage,
-    );
-  }
+  int get hashCode => Object.hash(
+        totalPhysicalMemory,
+        availablePhysicalMemory,
+        totalStorageSpace,
+        availableStorageSpace,
+        usedStorageSpace,
+        memoryUsagePercentage,
+      );
 
   @override
-  String toString() {
-    return 'MemoryInfo('
-        'totalPhysicalMemory: $totalPhysicalMemory, '
-        'availablePhysicalMemory: $availablePhysicalMemory, '
-        'totalStorageSpace: $totalStorageSpace, '
-        'availableStorageSpace: $availableStorageSpace, '
-        'usedStorageSpace: $usedStorageSpace, '
-        'memoryUsagePercentage: $memoryUsagePercentage'
-        ')';
-  }
+  String toString() => 'MemoryInfo('
+      'totalPhysicalMemory: $totalPhysicalMemory, '
+      'availablePhysicalMemory: $availablePhysicalMemory, '
+      'totalStorageSpace: $totalStorageSpace, '
+      'availableStorageSpace: $availableStorageSpace, '
+      'usedStorageSpace: $usedStorageSpace, '
+      'memoryUsagePercentage: $memoryUsagePercentage'
+      ')';
 }

@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import 'battery_info.dart';
 import 'display_info.dart';
 import 'memory_info.dart';
@@ -6,10 +8,11 @@ import 'processor_info.dart';
 import 'security_info.dart';
 import 'sensor_info.dart';
 
-/// Comprehensive device information containing hardware specs and capabilities.
+/// Comprehensive device information containing all available device details.
 ///
-/// This class provides a complete overview of the device including system
-/// information, hardware specifications, and available features.
+/// This class aggregates information from various device subsystems including
+/// hardware specifications, system details, battery status, sensors, and more.
+@immutable
 class DeviceInformation {
   /// Creates a new [DeviceInformation] instance.
   const DeviceInformation({
@@ -92,29 +95,30 @@ class DeviceInformation {
     SensorInfo? sensorInfo,
     NetworkInfo? networkInfo,
     SecurityInfo? securityInfo,
-  }) {
-    return DeviceInformation(
-      deviceName: deviceName ?? this.deviceName,
-      manufacturer: manufacturer ?? this.manufacturer,
-      model: model ?? this.model,
-      brand: brand ?? this.brand,
-      operatingSystem: operatingSystem ?? this.operatingSystem,
-      systemVersion: systemVersion ?? this.systemVersion,
-      buildNumber: buildNumber ?? this.buildNumber,
-      kernelVersion: kernelVersion ?? this.kernelVersion,
-      processorInfo: processorInfo ?? this.processorInfo,
-      memoryInfo: memoryInfo ?? this.memoryInfo,
-      displayInfo: displayInfo ?? this.displayInfo,
-      batteryInfo: batteryInfo ?? this.batteryInfo,
-      sensorInfo: sensorInfo ?? this.sensorInfo,
-      networkInfo: networkInfo ?? this.networkInfo,
-      securityInfo: securityInfo ?? this.securityInfo,
-    );
-  }
+  }) =>
+      DeviceInformation(
+        deviceName: deviceName ?? this.deviceName,
+        manufacturer: manufacturer ?? this.manufacturer,
+        model: model ?? this.model,
+        brand: brand ?? this.brand,
+        operatingSystem: operatingSystem ?? this.operatingSystem,
+        systemVersion: systemVersion ?? this.systemVersion,
+        buildNumber: buildNumber ?? this.buildNumber,
+        kernelVersion: kernelVersion ?? this.kernelVersion,
+        processorInfo: processorInfo ?? this.processorInfo,
+        memoryInfo: memoryInfo ?? this.memoryInfo,
+        displayInfo: displayInfo ?? this.displayInfo,
+        batteryInfo: batteryInfo ?? this.batteryInfo,
+        sensorInfo: sensorInfo ?? this.sensorInfo,
+        networkInfo: networkInfo ?? this.networkInfo,
+        securityInfo: securityInfo ?? this.securityInfo,
+      );
 
   @override
   bool operator ==(Object other) {
-    if (identical(this, other)) return true;
+    if (identical(this, other)) {
+      return true;
+    }
 
     return other is DeviceInformation &&
         other.deviceName == deviceName &&
@@ -135,44 +139,40 @@ class DeviceInformation {
   }
 
   @override
-  int get hashCode {
-    return Object.hash(
-      deviceName,
-      manufacturer,
-      model,
-      brand,
-      operatingSystem,
-      systemVersion,
-      buildNumber,
-      kernelVersion,
-      processorInfo,
-      memoryInfo,
-      displayInfo,
-      batteryInfo,
-      sensorInfo,
-      networkInfo,
-      securityInfo,
-    );
-  }
+  int get hashCode => Object.hash(
+        deviceName,
+        manufacturer,
+        model,
+        brand,
+        operatingSystem,
+        systemVersion,
+        buildNumber,
+        kernelVersion,
+        processorInfo,
+        memoryInfo,
+        displayInfo,
+        batteryInfo,
+        sensorInfo,
+        networkInfo,
+        securityInfo,
+      );
 
   @override
-  String toString() {
-    return 'DeviceInformation('
-        'deviceName: $deviceName, '
-        'manufacturer: $manufacturer, '
-        'model: $model, '
-        'brand: $brand, '
-        'operatingSystem: $operatingSystem, '
-        'systemVersion: $systemVersion, '
-        'buildNumber: $buildNumber, '
-        'kernelVersion: $kernelVersion, '
-        'processorInfo: $processorInfo, '
-        'memoryInfo: $memoryInfo, '
-        'displayInfo: $displayInfo, '
-        'batteryInfo: $batteryInfo, '
-        'sensorInfo: $sensorInfo, '
-        'networkInfo: $networkInfo, '
-        'securityInfo: $securityInfo'
-        ')';
-  }
+  String toString() => 'DeviceInformation('
+      'deviceName: $deviceName, '
+      'manufacturer: $manufacturer, '
+      'model: $model, '
+      'brand: $brand, '
+      'operatingSystem: $operatingSystem, '
+      'systemVersion: $systemVersion, '
+      'buildNumber: $buildNumber, '
+      'kernelVersion: $kernelVersion, '
+      'processorInfo: $processorInfo, '
+      'memoryInfo: $memoryInfo, '
+      'displayInfo: $displayInfo, '
+      'batteryInfo: $batteryInfo, '
+      'sensorInfo: $sensorInfo, '
+      'networkInfo: $networkInfo, '
+      'securityInfo: $securityInfo'
+      ')';
 }

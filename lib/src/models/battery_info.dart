@@ -1,7 +1,10 @@
+import 'package:flutter/foundation.dart';
+
 /// Information about the device's battery status and health.
 ///
 /// Contains details about battery level, charging status, health,
 /// and other battery-related metrics.
+@immutable
 class BatteryInfo {
   /// Creates a new [BatteryInfo] instance.
   const BatteryInfo({
@@ -57,21 +60,21 @@ class BatteryInfo {
     int? batteryCapacity,
     double? batteryVoltage,
     double? batteryTemperature,
-  }) {
-    return BatteryInfo(
-      batteryLevel: batteryLevel ?? this.batteryLevel,
-      chargingStatus: chargingStatus ?? this.chargingStatus,
-      batteryHealth: batteryHealth ?? this.batteryHealth,
-      batteryCapacity: batteryCapacity ?? this.batteryCapacity,
-      batteryVoltage: batteryVoltage ?? this.batteryVoltage,
-      batteryTemperature: batteryTemperature ?? this.batteryTemperature,
-    );
-  }
+  }) =>
+      BatteryInfo(
+        batteryLevel: batteryLevel ?? this.batteryLevel,
+        chargingStatus: chargingStatus ?? this.chargingStatus,
+        batteryHealth: batteryHealth ?? this.batteryHealth,
+        batteryCapacity: batteryCapacity ?? this.batteryCapacity,
+        batteryVoltage: batteryVoltage ?? this.batteryVoltage,
+        batteryTemperature: batteryTemperature ?? this.batteryTemperature,
+      );
 
   @override
   bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-
+    if (identical(this, other)) {
+      return true;
+    }
     return other is BatteryInfo &&
         other.batteryLevel == batteryLevel &&
         other.chargingStatus == chargingStatus &&
@@ -82,26 +85,22 @@ class BatteryInfo {
   }
 
   @override
-  int get hashCode {
-    return Object.hash(
-      batteryLevel,
-      chargingStatus,
-      batteryHealth,
-      batteryCapacity,
-      batteryVoltage,
-      batteryTemperature,
-    );
-  }
+  int get hashCode => Object.hash(
+        batteryLevel,
+        chargingStatus,
+        batteryHealth,
+        batteryCapacity,
+        batteryVoltage,
+        batteryTemperature,
+      );
 
   @override
-  String toString() {
-    return 'BatteryInfo('
-        'batteryLevel: $batteryLevel, '
-        'chargingStatus: $chargingStatus, '
-        'batteryHealth: $batteryHealth, '
-        'batteryCapacity: $batteryCapacity, '
-        'batteryVoltage: $batteryVoltage, '
-        'batteryTemperature: $batteryTemperature'
-        ')';
-  }
+  String toString() => 'BatteryInfo('
+      'batteryLevel: $batteryLevel, '
+      'chargingStatus: $chargingStatus, '
+      'batteryHealth: $batteryHealth, '
+      'batteryCapacity: $batteryCapacity, '
+      'batteryVoltage: $batteryVoltage, '
+      'batteryTemperature: $batteryTemperature'
+      ')';
 }

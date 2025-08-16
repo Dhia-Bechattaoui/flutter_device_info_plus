@@ -14,9 +14,8 @@ abstract class FlutterDeviceInfoPlusPlatform {
   static FlutterDeviceInfoPlusPlatform? _instance;
 
   /// Gets the current platform implementation.
-  static FlutterDeviceInfoPlusPlatform get instance {
-    return _instance ?? _throwNoPlatformImplementation();
-  }
+  static FlutterDeviceInfoPlusPlatform get instance =>
+      _instance ?? _throwNoPlatformImplementation();
 
   /// Sets the current platform implementation.
   static set instance(FlutterDeviceInfoPlusPlatform instance) {

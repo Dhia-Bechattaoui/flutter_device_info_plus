@@ -1,7 +1,10 @@
+import 'package:flutter/foundation.dart';
+
 /// Information about the device's security features and status.
 ///
 /// Contains details about device security capabilities, encryption status,
 /// and biometric authentication availability.
+@immutable
 class SecurityInfo {
   /// Creates a new [SecurityInfo] instance.
   const SecurityInfo({
@@ -39,7 +42,7 @@ class SecurityInfo {
 
   /// Gets a security score from 0 to 100 based on enabled features.
   int get securityScore {
-    int score = 0;
+    var score = 0;
     if (isDeviceSecure) score += 20;
     if (screenLockEnabled) score += 25;
     if (hasFingerprint) score += 20;
@@ -64,15 +67,14 @@ class SecurityInfo {
     bool? hasFaceUnlock,
     bool? screenLockEnabled,
     String? encryptionStatus,
-  }) {
-    return SecurityInfo(
-      isDeviceSecure: isDeviceSecure ?? this.isDeviceSecure,
-      hasFingerprint: hasFingerprint ?? this.hasFingerprint,
-      hasFaceUnlock: hasFaceUnlock ?? this.hasFaceUnlock,
-      screenLockEnabled: screenLockEnabled ?? this.screenLockEnabled,
-      encryptionStatus: encryptionStatus ?? this.encryptionStatus,
-    );
-  }
+  }) =>
+      SecurityInfo(
+        isDeviceSecure: isDeviceSecure ?? this.isDeviceSecure,
+        hasFingerprint: hasFingerprint ?? this.hasFingerprint,
+        hasFaceUnlock: hasFaceUnlock ?? this.hasFaceUnlock,
+        screenLockEnabled: screenLockEnabled ?? this.screenLockEnabled,
+        encryptionStatus: encryptionStatus ?? this.encryptionStatus,
+      );
 
   @override
   bool operator ==(Object other) {
@@ -87,24 +89,20 @@ class SecurityInfo {
   }
 
   @override
-  int get hashCode {
-    return Object.hash(
-      isDeviceSecure,
-      hasFingerprint,
-      hasFaceUnlock,
-      screenLockEnabled,
-      encryptionStatus,
-    );
-  }
+  int get hashCode => Object.hash(
+        isDeviceSecure,
+        hasFingerprint,
+        hasFaceUnlock,
+        screenLockEnabled,
+        encryptionStatus,
+      );
 
   @override
-  String toString() {
-    return 'SecurityInfo('
-        'isDeviceSecure: $isDeviceSecure, '
-        'hasFingerprint: $hasFingerprint, '
-        'hasFaceUnlock: $hasFaceUnlock, '
-        'screenLockEnabled: $screenLockEnabled, '
-        'encryptionStatus: $encryptionStatus'
-        ')';
-  }
+  String toString() => 'SecurityInfo('
+      'isDeviceSecure: $isDeviceSecure, '
+      'hasFingerprint: $hasFingerprint, '
+      'hasFaceUnlock: $hasFaceUnlock, '
+      'screenLockEnabled: $screenLockEnabled, '
+      'encryptionStatus: $encryptionStatus'
+      ')';
 }
