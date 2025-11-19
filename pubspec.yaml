@@ -7,12 +7,13 @@ issue_tracker: https://github.com/Dhia-Bechattaoui/flutter_device_info_plus/issu
 documentation: https://pub.dev/documentation/flutter_device_info_plus
 
 environment:
-  sdk: '>=3.0.0 <4.0.0'
-  flutter: ">=3.10.0"
+  sdk: '>=3.8.0 <4.0.0'
+  flutter: ">=3.32.0"
 
 dependencies:
   flutter:
     sdk: flutter
+  web: ^1.0.0
 
 dev_dependencies:
   build_runner: ^2.0.0
@@ -46,3 +47,6 @@ topics:
   - system-info
   - platform-info
   - flutter-plugin
+
+funding:
+  - https://github.com/sponsors/Dhia-Bechattaoui

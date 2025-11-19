@@ -6,9 +6,7 @@ import 'package:flutter/foundation.dart';
 @immutable
 class SensorInfo {
   /// Creates a new [SensorInfo] instance.
-  const SensorInfo({
-    required this.availableSensors,
-  });
+  const SensorInfo({required this.availableSensors});
 
   /// List of available sensor types on the device.
   final List<SensorType> availableSensors;
@@ -49,12 +47,8 @@ class SensorInfo {
   int get sensorCount => availableSensors.length;
 
   /// Creates a copy of this [SensorInfo] with the given fields replaced.
-  SensorInfo copyWith({
-    List<SensorType>? availableSensors,
-  }) =>
-      SensorInfo(
-        availableSensors: availableSensors ?? this.availableSensors,
-      );
+  SensorInfo copyWith({List<SensorType>? availableSensors}) =>
+      SensorInfo(availableSensors: availableSensors ?? this.availableSensors);
 
   @override
   bool operator ==(Object other) {

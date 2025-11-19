@@ -60,15 +60,14 @@ class BatteryInfo {
     int? batteryCapacity,
     double? batteryVoltage,
     double? batteryTemperature,
-  }) =>
-      BatteryInfo(
-        batteryLevel: batteryLevel ?? this.batteryLevel,
-        chargingStatus: chargingStatus ?? this.chargingStatus,
-        batteryHealth: batteryHealth ?? this.batteryHealth,
-        batteryCapacity: batteryCapacity ?? this.batteryCapacity,
-        batteryVoltage: batteryVoltage ?? this.batteryVoltage,
-        batteryTemperature: batteryTemperature ?? this.batteryTemperature,
-      );
+  }) => BatteryInfo(
+    batteryLevel: batteryLevel ?? this.batteryLevel,
+    chargingStatus: chargingStatus ?? this.chargingStatus,
+    batteryHealth: batteryHealth ?? this.batteryHealth,
+    batteryCapacity: batteryCapacity ?? this.batteryCapacity,
+    batteryVoltage: batteryVoltage ?? this.batteryVoltage,
+    batteryTemperature: batteryTemperature ?? this.batteryTemperature,
+  );
 
   @override
   bool operator ==(Object other) {
@@ -86,16 +85,17 @@ class BatteryInfo {
 
   @override
   int get hashCode => Object.hash(
-        batteryLevel,
-        chargingStatus,
-        batteryHealth,
-        batteryCapacity,
-        batteryVoltage,
-        batteryTemperature,
-      );
+    batteryLevel,
+    chargingStatus,
+    batteryHealth,
+    batteryCapacity,
+    batteryVoltage,
+    batteryTemperature,
+  );
 
   @override
-  String toString() => 'BatteryInfo('
+  String toString() =>
+      'BatteryInfo('
       'batteryLevel: $batteryLevel, '
       'chargingStatus: $chargingStatus, '
       'batteryHealth: $batteryHealth, '

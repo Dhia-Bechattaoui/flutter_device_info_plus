@@ -48,14 +48,13 @@ class NetworkInfo {
     bool? isConnected,
     String? ipAddress,
     String? macAddress,
-  }) =>
-      NetworkInfo(
-        connectionType: connectionType ?? this.connectionType,
-        networkSpeed: networkSpeed ?? this.networkSpeed,
-        isConnected: isConnected ?? this.isConnected,
-        ipAddress: ipAddress ?? this.ipAddress,
-        macAddress: macAddress ?? this.macAddress,
-      );
+  }) => NetworkInfo(
+    connectionType: connectionType ?? this.connectionType,
+    networkSpeed: networkSpeed ?? this.networkSpeed,
+    isConnected: isConnected ?? this.isConnected,
+    ipAddress: ipAddress ?? this.ipAddress,
+    macAddress: macAddress ?? this.macAddress,
+  );
 
   @override
   bool operator ==(Object other) {
@@ -71,15 +70,16 @@ class NetworkInfo {
 
   @override
   int get hashCode => Object.hash(
-        connectionType,
-        networkSpeed,
-        isConnected,
-        ipAddress,
-        macAddress,
-      );
+    connectionType,
+    networkSpeed,
+    isConnected,
+    ipAddress,
+    macAddress,
+  );
 
   @override
-  String toString() => 'NetworkInfo('
+  String toString() =>
+      'NetworkInfo('
       'connectionType: $connectionType, '
       'networkSpeed: $networkSpeed, '
       'isConnected: $isConnected, '

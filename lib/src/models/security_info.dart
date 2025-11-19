@@ -67,14 +67,13 @@ class SecurityInfo {
     bool? hasFaceUnlock,
     bool? screenLockEnabled,
     String? encryptionStatus,
-  }) =>
-      SecurityInfo(
-        isDeviceSecure: isDeviceSecure ?? this.isDeviceSecure,
-        hasFingerprint: hasFingerprint ?? this.hasFingerprint,
-        hasFaceUnlock: hasFaceUnlock ?? this.hasFaceUnlock,
-        screenLockEnabled: screenLockEnabled ?? this.screenLockEnabled,
-        encryptionStatus: encryptionStatus ?? this.encryptionStatus,
-      );
+  }) => SecurityInfo(
+    isDeviceSecure: isDeviceSecure ?? this.isDeviceSecure,
+    hasFingerprint: hasFingerprint ?? this.hasFingerprint,
+    hasFaceUnlock: hasFaceUnlock ?? this.hasFaceUnlock,
+    screenLockEnabled: screenLockEnabled ?? this.screenLockEnabled,
+    encryptionStatus: encryptionStatus ?? this.encryptionStatus,
+  );
 
   @override
   bool operator ==(Object other) {
@@ -90,15 +89,16 @@ class SecurityInfo {
 
   @override
   int get hashCode => Object.hash(
-        isDeviceSecure,
-        hasFingerprint,
-        hasFaceUnlock,
-        screenLockEnabled,
-        encryptionStatus,
-      );
+    isDeviceSecure,
+    hasFingerprint,
+    hasFaceUnlock,
+    screenLockEnabled,
+    encryptionStatus,
+  );
 
   @override
-  String toString() => 'SecurityInfo('
+  String toString() =>
+      'SecurityInfo('
       'isDeviceSecure: $isDeviceSecure, '
       'hasFingerprint: $hasFingerprint, '
       'hasFaceUnlock: $hasFaceUnlock, '

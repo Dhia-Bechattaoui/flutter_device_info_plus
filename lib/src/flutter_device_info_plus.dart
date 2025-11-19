@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 
 import 'exceptions.dart';
 import 'models/models.dart';
@@ -20,6 +21,10 @@ import 'models/models.dart';
 /// print('RAM: ${info.memoryInfo.totalPhysicalMemory} bytes');
 /// ```
 class FlutterDeviceInfoPlus {
+  static const MethodChannel _channel = MethodChannel(
+    'flutter_device_info_plus',
+  );
+
   /// Creates a new instance of [FlutterDeviceInfoPlus].
   const FlutterDeviceInfoPlus();
 
@@ -32,27 +37,43 @@ class FlutterDeviceInfoPlus {
   /// Throws [DeviceInfoException] if device information cannot be retrieved.
   Future<DeviceInformation> getDeviceInfo() async {
     try {
-      // Check if we're on web first since it doesn't have targetPlatform in the enum
       if (kIsWeb) {
         return _getWebDeviceInfo();
       }
 
-      // Use targetPlatform for cross-platform compatibility
-      switch (defaultTargetPlatform) {
-        case TargetPlatform.android:
-          return _getAndroidDeviceInfo();
-        case TargetPlatform.iOS:
-          return _getIosDeviceInfo();
-        case TargetPlatform.windows:
-          return _getWindowsDeviceInfo();
-        case TargetPlatform.macOS:
-          return _getMacOsDeviceInfo();
-        case TargetPlatform.linux:
-          return _getLinuxDeviceInfo();
-        case TargetPlatform.fuchsia:
-          // Treat Fuchsia as Linux-like for now
-          return _getLinuxDeviceInfo();
-      }
+      final Map<dynamic, dynamic> data =
+          await _channel.invokeMethod('getDeviceInfo') as Map<dynamic, dynamic>;
+
+      // Get additional info
+      final batteryInfo = await getBatteryInfo();
+      final sensorInfo = await getSensorInfo();
+      final networkInfo = await getNetworkInfo();
+
+      return DeviceInformation(
+        deviceName: data['deviceName'] as String? ?? 'Unknown',
+        manufacturer: data['manufacturer'] as String? ?? 'Unknown',
+        model: data['model'] as String? ?? 'Unknown',
+        brand: data['brand'] as String? ?? 'Unknown',
+        operatingSystem: data['operatingSystem'] as String? ?? 'Unknown',
+        systemVersion: data['systemVersion'] as String? ?? 'Unknown',
+        buildNumber: data['buildNumber'] as String? ?? 'Unknown',
+        kernelVersion: data['kernelVersion'] as String? ?? 'Unknown',
+        processorInfo: _parseProcessorInfo(
+          data['processorInfo'] as Map<dynamic, dynamic>?,
+        ),
+        memoryInfo: _parseMemoryInfo(
+          data['memoryInfo'] as Map<dynamic, dynamic>?,
+        ),
+        displayInfo: _parseDisplayInfo(
+          data['displayInfo'] as Map<dynamic, dynamic>?,
+        ),
+        batteryInfo: batteryInfo,
+        sensorInfo: sensorInfo,
+        networkInfo: networkInfo,
+        securityInfo: _parseSecurityInfo(
+          data['securityInfo'] as Map<dynamic, dynamic>?,
+        ),
+      );
     } catch (e) {
       throw DeviceInfoException('Failed to get device information: $e');
     }
@@ -89,38 +110,27 @@ class FlutterDeviceInfoPlus {
   /// is not available on the current platform.
   Future<BatteryInfo?> getBatteryInfo() async {
     try {
-      // Web platform doesn't provide battery info
       if (kIsWeb) {
         return null;
       }
 
-      // This would be implemented using platform channels
-      // For now, return mock data based on platform
-      switch (defaultTargetPlatform) {
-        case TargetPlatform.android:
-        case TargetPlatform.iOS:
-          return const BatteryInfo(
-            batteryLevel: 85,
-            chargingStatus: 'charging',
-            batteryHealth: 'good',
-            batteryCapacity: 3000,
-            batteryVoltage: 4,
-            batteryTemperature: 25,
-          );
-        case TargetPlatform.windows:
-        case TargetPlatform.macOS:
-        case TargetPlatform.linux:
-        case TargetPlatform.fuchsia:
-          // Desktop/server platforms may have battery info for laptops
-          return const BatteryInfo(
-            batteryLevel: 95,
-            chargingStatus: 'full',
-            batteryHealth: 'good',
-            batteryCapacity: 5000,
-            batteryVoltage: 4,
-            batteryTemperature: 23,
-          );
+      final Map<dynamic, dynamic>? data =
+          await _channel.invokeMethod('getBatteryInfo')
+              as Map<dynamic, dynamic>?;
+
+      if (data == null) {
+        return null;
       }
+
+      return BatteryInfo(
+        batteryLevel: data['batteryLevel'] as int? ?? 0,
+        chargingStatus: data['chargingStatus'] as String? ?? 'unknown',
+        batteryHealth: data['batteryHealth'] as String? ?? 'unknown',
+        batteryCapacity: data['batteryCapacity'] as int? ?? 0,
+        batteryVoltage: (data['batteryVoltage'] as num?)?.toDouble() ?? 0.0,
+        batteryTemperature:
+            (data['batteryTemperature'] as num?)?.toDouble() ?? 0.0,
+      );
     } catch (e) {
       throw DeviceInfoException('Failed to get battery info: $e');
     }
@@ -132,16 +142,22 @@ class FlutterDeviceInfoPlus {
   /// and their capabilities.
   Future<SensorInfo> getSensorInfo() async {
     try {
-      // Mock sensor data - would be implemented via platform channels
-      final sensors = <SensorType>[
-        SensorType.accelerometer,
-        SensorType.gyroscope,
-        SensorType.magnetometer,
-        SensorType.proximity,
-        SensorType.light,
-      ];
+      if (kIsWeb) {
+        // Web sensors are limited
+        return const SensorInfo(availableSensors: []);
+      }
 
-      return SensorInfo(availableSensors: sensors);
+      final Map<dynamic, dynamic> data =
+          await _channel.invokeMethod('getSensorInfo') as Map<dynamic, dynamic>;
+
+      final List<dynamic> sensors =
+          data['availableSensors'] as List<dynamic>? ?? [];
+      final sensorTypes = sensors
+          .map((s) => _stringToSensorType(s as String))
+          .whereType<SensorType>()
+          .toList();
+
+      return SensorInfo(availableSensors: sensorTypes);
     } catch (e) {
       throw DeviceInfoException('Failed to get sensor info: $e');
     }
@@ -153,276 +169,163 @@ class FlutterDeviceInfoPlus {
   /// connection including type, speed, and interface information.
   Future<NetworkInfo> getNetworkInfo() async {
     try {
-      // Mock network data - would be implemented via platform channels
-      return const NetworkInfo(
-        connectionType: 'wifi',
-        networkSpeed: '100 Mbps',
-        isConnected: true,
-        ipAddress: '192.168.1.100',
-        macAddress: '00:11:22:33:44:55',
+      if (kIsWeb) {
+        return _getWebNetworkInfo();
+      }
+
+      final Map<dynamic, dynamic> data =
+          await _channel.invokeMethod('getNetworkInfo')
+              as Map<dynamic, dynamic>;
+
+      return NetworkInfo(
+        connectionType: data['connectionType'] as String? ?? 'none',
+        networkSpeed: data['networkSpeed'] as String? ?? 'Unknown',
+        isConnected: data['isConnected'] as bool? ?? false,
+        ipAddress: data['ipAddress'] as String? ?? 'unknown',
+        macAddress: data['macAddress'] as String? ?? 'unknown',
       );
     } catch (e) {
       throw DeviceInfoException('Failed to get network info: $e');
     }
   }
 
-  Future<DeviceInformation> _getAndroidDeviceInfo() async {
-    final batteryInfo = await getBatteryInfo();
-    final sensorInfo = await getSensorInfo();
-    final networkInfo = await getNetworkInfo();
+  ProcessorInfo _parseProcessorInfo(Map<dynamic, dynamic>? data) {
+    if (data == null) {
+      return const ProcessorInfo(
+        architecture: 'unknown',
+        coreCount: 0,
+        maxFrequency: 0,
+        processorName: 'Unknown',
+        features: [],
+      );
+    }
 
-    return DeviceInformation(
-      deviceName: 'Android Device',
-      manufacturer: 'Unknown',
-      model: 'Android Device',
-      brand: 'Android',
-      operatingSystem: 'Android',
-      systemVersion: 'Unknown',
-      buildNumber: 'Unknown',
-      kernelVersion: 'Linux',
-      processorInfo: const ProcessorInfo(
-        architecture: 'arm64',
-        coreCount: 8, // Mock data - would get from native
-        maxFrequency: 2400,
-        processorName: 'ARM Processor', // Mock data
-        features: ['ARMv8', 'NEON'],
-      ),
-      memoryInfo: const MemoryInfo(
-        totalPhysicalMemory: 8589934592, // 8GB mock
-        availablePhysicalMemory: 4294967296, // 4GB mock
-        totalStorageSpace: 137438953472, // 128GB mock
-        availableStorageSpace: 68719476736, // 64GB mock
-        usedStorageSpace: 68719476736, // 64GB mock
-        memoryUsagePercentage: 50,
-      ),
-      displayInfo: const DisplayInfo(
-        screenWidth:
-            1080, // Mock data - actual implementation would use platform channels
-        screenHeight:
-            2340, // Mock data - actual implementation would use platform channels
-        pixelDensity:
-            3, // Mock data - actual implementation would use platform channels
-        refreshRate: 120, // Mock data
-        screenSizeInches: 6, // Mock data
-        orientation: 'portrait',
-        isHdr: true,
-      ),
-      batteryInfo: batteryInfo,
-      sensorInfo: sensorInfo,
-      networkInfo: networkInfo,
-      securityInfo: const SecurityInfo(
-        isDeviceSecure: true,
-        hasFingerprint: true, // Mock data
-        hasFaceUnlock: false, // Mock data
-        screenLockEnabled: true, // Mock data
-        encryptionStatus: 'encrypted',
-      ),
+    final features = (data['features'] as List<dynamic>?)?.cast<String>() ?? [];
+
+    return ProcessorInfo(
+      architecture: data['architecture'] as String? ?? 'unknown',
+      coreCount: (data['coreCount'] as num?)?.toInt() ?? 0,
+      maxFrequency: (data['maxFrequency'] as num?)?.toInt() ?? 0,
+      processorName: data['processorName'] as String? ?? 'Unknown',
+      features: features,
     );
   }
 
-  Future<DeviceInformation> _getIosDeviceInfo() async {
-    final batteryInfo = await getBatteryInfo();
-    final sensorInfo = await getSensorInfo();
-    final networkInfo = await getNetworkInfo();
+  MemoryInfo _parseMemoryInfo(Map<dynamic, dynamic>? data) {
+    if (data == null) {
+      return const MemoryInfo(
+        totalPhysicalMemory: 0,
+        availablePhysicalMemory: 0,
+        totalStorageSpace: 0,
+        availableStorageSpace: 0,
+        usedStorageSpace: 0,
+        memoryUsagePercentage: 0,
+      );
+    }
 
-    return DeviceInformation(
-      deviceName: 'iPhone',
-      manufacturer: 'Apple',
-      model: 'iPhone',
-      brand: 'Apple',
-      operatingSystem: 'iOS',
-      systemVersion: 'Unknown',
-      buildNumber: 'Unknown',
-      kernelVersion: 'Darwin',
-      processorInfo: const ProcessorInfo(
-        architecture: 'arm64',
-        coreCount: 6, // Mock data
-        maxFrequency: 3200,
-        processorName: 'Apple A15 Bionic', // Mock data
-        features: ['ARMv8', 'NEON'],
-      ),
-      memoryInfo: const MemoryInfo(
-        totalPhysicalMemory: 6442450944, // 6GB mock
-        availablePhysicalMemory: 3221225472, // 3GB mock
-        totalStorageSpace: 137438953472, // 128GB mock
-        availableStorageSpace: 68719476736, // 64GB mock
-        usedStorageSpace: 68719476736, // 64GB mock
-        memoryUsagePercentage: 50,
-      ),
-      displayInfo: const DisplayInfo(
-        screenWidth: 1170,
-        screenHeight: 2532,
-        pixelDensity: 3,
-        refreshRate: 120,
-        screenSizeInches: 6,
-        orientation: 'portrait',
-        isHdr: true,
-      ),
-      batteryInfo: batteryInfo,
-      sensorInfo: sensorInfo,
-      networkInfo: networkInfo,
-      securityInfo: const SecurityInfo(
-        isDeviceSecure: true,
-        hasFingerprint: true, // Mock data
-        hasFaceUnlock: true, // Mock data
-        screenLockEnabled: true, // Mock data
-        encryptionStatus: 'encrypted',
-      ),
+    return MemoryInfo(
+      totalPhysicalMemory: (data['totalPhysicalMemory'] as num?)?.toInt() ?? 0,
+      availablePhysicalMemory:
+          (data['availablePhysicalMemory'] as num?)?.toInt() ?? 0,
+      totalStorageSpace: (data['totalStorageSpace'] as num?)?.toInt() ?? 0,
+      availableStorageSpace:
+          (data['availableStorageSpace'] as num?)?.toInt() ?? 0,
+      usedStorageSpace: (data['usedStorageSpace'] as num?)?.toInt() ?? 0,
+      memoryUsagePercentage:
+          (data['memoryUsagePercentage'] as num?)?.toDouble() ?? 0.0,
     );
   }
 
-  Future<DeviceInformation> _getWindowsDeviceInfo() async {
-    final sensorInfo = await getSensorInfo();
-    final networkInfo = await getNetworkInfo();
-
-    return DeviceInformation(
-      deviceName: 'Windows PC',
-      manufacturer: 'Microsoft',
-      model: 'Windows PC',
-      brand: 'Microsoft',
-      operatingSystem: 'Windows',
-      systemVersion: 'Unknown',
-      buildNumber: 'Unknown',
-      kernelVersion: 'NT',
-      processorInfo: const ProcessorInfo(
-        architecture: 'x64',
-        coreCount: 8,
-        maxFrequency: 3600,
-        processorName: 'Intel Core i7',
-        features: ['AVX', 'SSE4'],
-      ),
-      memoryInfo: const MemoryInfo(
-        totalPhysicalMemory: 17179869184, // 16GB mock
-        availablePhysicalMemory: 8589934592, // 8GB mock
-        totalStorageSpace: 1099511627776, // 1TB mock
-        availableStorageSpace: 549755813888, // 512GB mock
-        usedStorageSpace: 549755813888, // 512GB mock
-        memoryUsagePercentage: 50,
-      ),
-      displayInfo: const DisplayInfo(
-        screenWidth: 1920,
-        screenHeight: 1080,
-        pixelDensity: 1,
-        refreshRate: 60,
-        screenSizeInches: 24,
-        orientation: 'landscape',
+  DisplayInfo _parseDisplayInfo(Map<dynamic, dynamic>? data) {
+    if (data == null) {
+      return const DisplayInfo(
+        screenWidth: 0,
+        screenHeight: 0,
+        pixelDensity: 1.0,
+        refreshRate: 60.0,
+        screenSizeInches: 0.0,
+        orientation: 'portrait',
         isHdr: false,
-      ),
-      sensorInfo: sensorInfo,
-      networkInfo: networkInfo,
-      securityInfo: const SecurityInfo(
-        isDeviceSecure: true,
+      );
+    }
+
+    return DisplayInfo(
+      screenWidth: (data['screenWidth'] as num?)?.toInt() ?? 0,
+      screenHeight: (data['screenHeight'] as num?)?.toInt() ?? 0,
+      pixelDensity: (data['pixelDensity'] as num?)?.toDouble() ?? 1.0,
+      refreshRate: (data['refreshRate'] as num?)?.toDouble() ?? 60.0,
+      screenSizeInches: (data['screenSizeInches'] as num?)?.toDouble() ?? 0.0,
+      orientation: data['orientation'] as String? ?? 'portrait',
+      isHdr: data['isHdr'] as bool? ?? false,
+    );
+  }
+
+  SecurityInfo _parseSecurityInfo(Map<dynamic, dynamic>? data) {
+    if (data == null) {
+      return const SecurityInfo(
+        isDeviceSecure: false,
         hasFingerprint: false,
         hasFaceUnlock: false,
-        screenLockEnabled: true,
-        encryptionStatus: 'encrypted',
-      ),
+        screenLockEnabled: false,
+        encryptionStatus: 'unknown',
+      );
+    }
+
+    return SecurityInfo(
+      isDeviceSecure: data['isDeviceSecure'] as bool? ?? false,
+      hasFingerprint: data['hasFingerprint'] as bool? ?? false,
+      hasFaceUnlock: data['hasFaceUnlock'] as bool? ?? false,
+      screenLockEnabled: data['screenLockEnabled'] as bool? ?? false,
+      encryptionStatus: data['encryptionStatus'] as String? ?? 'unknown',
     );
   }
 
-  Future<DeviceInformation> _getMacOsDeviceInfo() async {
-    final batteryInfo = await getBatteryInfo();
-    final sensorInfo = await getSensorInfo();
-    final networkInfo = await getNetworkInfo();
-
-    return DeviceInformation(
-      deviceName: 'Mac',
-      manufacturer: 'Apple',
-      model: 'Mac',
-      brand: 'Apple',
-      operatingSystem: 'macOS',
-      systemVersion: 'Unknown',
-      buildNumber: 'Unknown',
-      kernelVersion: 'Darwin',
-      processorInfo: const ProcessorInfo(
-        architecture: 'arm64',
-        coreCount: 8,
-        maxFrequency: 3200,
-        processorName: 'Apple M1 Pro',
-        features: ['ARM64', 'Neural Engine'],
-      ),
-      memoryInfo: const MemoryInfo(
-        totalPhysicalMemory: 17179869184, // 16GB mock
-        availablePhysicalMemory: 8589934592, // 8GB mock
-        totalStorageSpace: 1099511627776, // 1TB mock
-        availableStorageSpace: 549755813888, // 512GB mock
-        usedStorageSpace: 549755813888, // 512GB mock
-        memoryUsagePercentage: 50,
-      ),
-      displayInfo: const DisplayInfo(
-        screenWidth: 3024,
-        screenHeight: 1964,
-        pixelDensity: 2,
-        refreshRate: 120,
-        screenSizeInches: 14,
-        orientation: 'landscape',
-        isHdr: true,
-      ),
-      batteryInfo: batteryInfo,
-      sensorInfo: sensorInfo,
-      networkInfo: networkInfo,
-      securityInfo: const SecurityInfo(
-        isDeviceSecure: true,
-        hasFingerprint: true,
-        hasFaceUnlock: true,
-        screenLockEnabled: true,
-        encryptionStatus: 'encrypted',
-      ),
-    );
-  }
-
-  Future<DeviceInformation> _getLinuxDeviceInfo() async {
-    final sensorInfo = await getSensorInfo();
-    final networkInfo = await getNetworkInfo();
-
-    return DeviceInformation(
-      deviceName: 'Linux PC',
-      manufacturer: 'Linux',
-      model: 'Linux PC',
-      brand: 'Linux',
-      operatingSystem: 'Linux',
-      systemVersion: 'Unknown',
-      buildNumber: 'Unknown',
-      kernelVersion: 'Linux',
-      processorInfo: const ProcessorInfo(
-        architecture: 'x64',
-        coreCount: 8,
-        maxFrequency: 3600,
-        processorName: 'AMD Ryzen 7',
-        features: ['AVX2', 'SSE4'],
-      ),
-      memoryInfo: const MemoryInfo(
-        totalPhysicalMemory: 17179869184, // 16GB mock
-        availablePhysicalMemory: 8589934592, // 8GB mock
-        totalStorageSpace: 1099511627776, // 1TB mock
-        availableStorageSpace: 549755813888, // 512GB mock
-        usedStorageSpace: 549755813888, // 512GB mock
-        memoryUsagePercentage: 50,
-      ),
-      displayInfo: const DisplayInfo(
-        screenWidth: 1920,
-        screenHeight: 1080,
-        pixelDensity: 1,
-        refreshRate: 60,
-        screenSizeInches: 24,
-        orientation: 'landscape',
-        isHdr: false,
-      ),
-      sensorInfo: sensorInfo,
-      networkInfo: networkInfo,
-      securityInfo: const SecurityInfo(
-        isDeviceSecure: true,
-        hasFingerprint: false,
-        hasFaceUnlock: false,
-        screenLockEnabled: true,
-        encryptionStatus: 'encrypted',
-      ),
-    );
+  SensorType? _stringToSensorType(String sensor) {
+    switch (sensor.toLowerCase()) {
+      case 'accelerometer':
+        return SensorType.accelerometer;
+      case 'gyroscope':
+        return SensorType.gyroscope;
+      case 'magnetometer':
+        return SensorType.magnetometer;
+      case 'proximity':
+        return SensorType.proximity;
+      case 'light':
+        return SensorType.light;
+      case 'barometer':
+        return SensorType.barometer;
+      case 'temperature':
+        return SensorType.temperature;
+      case 'humidity':
+        return SensorType.humidity;
+      case 'stepcounter':
+        return SensorType.stepCounter;
+      case 'heartrate':
+        return SensorType.heartRate;
+      case 'gravity':
+        return SensorType.gravity;
+      case 'linearacceleration':
+        return SensorType.linearAcceleration;
+      case 'rotationvector':
+        return SensorType.rotationVector;
+      case 'fingerprint':
+        return SensorType.fingerprint;
+      case 'facerecognition':
+        return SensorType.faceRecognition;
+      default:
+        return null;
+    }
   }
 
   Future<DeviceInformation> _getWebDeviceInfo() async {
+    // Web implementation - use browser APIs where available
     final sensorInfo = await getSensorInfo();
-    final networkInfo = await getNetworkInfo();
+    final networkInfo = await _getWebNetworkInfo();
+
+    // Get screen info from browser
+    final screenWidth = 1920; // Would use window.screen.width in JS
+    final screenHeight = 1080; // Would use window.screen.height in JS
+    final pixelDensity = 1.0; // Would use window.devicePixelRatio in JS
 
     return DeviceInformation(
       deviceName: 'Web Browser',
@@ -435,37 +338,49 @@ class FlutterDeviceInfoPlus {
       kernelVersion: 'Web Engine',
       processorInfo: const ProcessorInfo(
         architecture: 'JavaScript',
-        coreCount: 4, // Mock data
-        maxFrequency: 0, // Not applicable for web
+        coreCount: 4,
+        maxFrequency: 0,
         processorName: 'JavaScript Engine',
         features: ['WebAssembly', 'WebGL'],
       ),
       memoryInfo: const MemoryInfo(
-        totalPhysicalMemory: 8589934592, // 8GB mock
-        availablePhysicalMemory: 4294967296, // 4GB mock
-        totalStorageSpace: 1073741824, // 1GB browser storage mock
-        availableStorageSpace: 536870912, // 512MB mock
-        usedStorageSpace: 536870912, // 512MB mock
+        totalPhysicalMemory: 8589934592,
+        availablePhysicalMemory: 4294967296,
+        totalStorageSpace: 1073741824,
+        availableStorageSpace: 536870912,
+        usedStorageSpace: 536870912,
         memoryUsagePercentage: 50,
       ),
-      displayInfo: const DisplayInfo(
-        screenWidth: 1920,
-        screenHeight: 1080,
-        pixelDensity: 1,
-        refreshRate: 60,
-        screenSizeInches: 24,
-        orientation: 'landscape',
+      displayInfo: DisplayInfo(
+        screenWidth: screenWidth,
+        screenHeight: screenHeight,
+        pixelDensity: pixelDensity,
+        refreshRate: 60.0,
+        screenSizeInches: 24.0,
+        orientation: screenWidth > screenHeight ? 'landscape' : 'portrait',
         isHdr: false,
       ),
+      batteryInfo: null,
       sensorInfo: sensorInfo,
       networkInfo: networkInfo,
       securityInfo: const SecurityInfo(
-        isDeviceSecure: false, // Web is generally less secure
+        isDeviceSecure: false,
         hasFingerprint: false,
         hasFaceUnlock: false,
         screenLockEnabled: false,
         encryptionStatus: 'https',
       ),
+    );
+  }
+
+  Future<NetworkInfo> _getWebNetworkInfo() async {
+    // Web network info is limited
+    return const NetworkInfo(
+      connectionType: 'unknown',
+      networkSpeed: 'Unknown',
+      isConnected: true,
+      ipAddress: 'unknown',
+      macAddress: 'unknown',
     );
   }
 }

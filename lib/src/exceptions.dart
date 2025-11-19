@@ -76,8 +76,9 @@ class PermissionException extends DeviceInfoBaseException {
 
   @override
   String toString() {
-    final permissionString =
-        permission != null ? ' (permission: $permission)' : '';
+    final permissionString = permission != null
+        ? ' (permission: $permission)'
+        : '';
     return 'PermissionException: $message$permissionString';
   }
 }

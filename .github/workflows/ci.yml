@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  pana:
+    name: Pana Score Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.32.0'
+          channel: 'stable'
+          cache: true
+      
+      - name: Install pana
+        run: dart pub global activate pana
+      
+      - name: Run pana and check score
+        run: |
+          OUTPUT=$(dart pub global run pana --no-warning --source path . 2>&1)
+          echo "$OUTPUT"
+          SCORE=$(echo "$OUTPUT" | grep -oP 'Points: \K\d+(?=/\d+)' || echo "0")
+          echo "Pana score: $SCORE"
+          if [ "$SCORE" -lt 160 ]; then
+            echo "Pana score is below 160 (current: $SCORE)"
+            exit 1
+          fi
+

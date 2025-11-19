@@ -62,18 +62,15 @@ class MemoryInfo {
     int? availableStorageSpace,
     int? usedStorageSpace,
     double? memoryUsagePercentage,
-  }) =>
-      MemoryInfo(
-        totalPhysicalMemory: totalPhysicalMemory ?? this.totalPhysicalMemory,
-        availablePhysicalMemory:
-            availablePhysicalMemory ?? this.availablePhysicalMemory,
-        totalStorageSpace: totalStorageSpace ?? this.totalStorageSpace,
-        availableStorageSpace:
-            availableStorageSpace ?? this.availableStorageSpace,
-        usedStorageSpace: usedStorageSpace ?? this.usedStorageSpace,
-        memoryUsagePercentage:
-            memoryUsagePercentage ?? this.memoryUsagePercentage,
-      );
+  }) => MemoryInfo(
+    totalPhysicalMemory: totalPhysicalMemory ?? this.totalPhysicalMemory,
+    availablePhysicalMemory:
+        availablePhysicalMemory ?? this.availablePhysicalMemory,
+    totalStorageSpace: totalStorageSpace ?? this.totalStorageSpace,
+    availableStorageSpace: availableStorageSpace ?? this.availableStorageSpace,
+    usedStorageSpace: usedStorageSpace ?? this.usedStorageSpace,
+    memoryUsagePercentage: memoryUsagePercentage ?? this.memoryUsagePercentage,
+  );
 
   @override
   bool operator ==(Object other) {
@@ -92,16 +89,17 @@ class MemoryInfo {
 
   @override
   int get hashCode => Object.hash(
-        totalPhysicalMemory,
-        availablePhysicalMemory,
-        totalStorageSpace,
-        availableStorageSpace,
-        usedStorageSpace,
-        memoryUsagePercentage,
-      );
+    totalPhysicalMemory,
+    availablePhysicalMemory,
+    totalStorageSpace,
+    availableStorageSpace,
+    usedStorageSpace,
+    memoryUsagePercentage,
+  );
 
   @override
-  String toString() => 'MemoryInfo('
+  String toString() =>
+      'MemoryInfo('
       'totalPhysicalMemory: $totalPhysicalMemory, '
       'availablePhysicalMemory: $availablePhysicalMemory, '
       'totalStorageSpace: $totalStorageSpace, '

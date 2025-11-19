@@ -37,14 +37,13 @@ class ProcessorInfo {
     int? maxFrequency,
     String? processorName,
     List<String>? features,
-  }) =>
-      ProcessorInfo(
-        architecture: architecture ?? this.architecture,
-        coreCount: coreCount ?? this.coreCount,
-        maxFrequency: maxFrequency ?? this.maxFrequency,
-        processorName: processorName ?? this.processorName,
-        features: features ?? this.features,
-      );
+  }) => ProcessorInfo(
+    architecture: architecture ?? this.architecture,
+    coreCount: coreCount ?? this.coreCount,
+    maxFrequency: maxFrequency ?? this.maxFrequency,
+    processorName: processorName ?? this.processorName,
+    features: features ?? this.features,
+  );
 
   @override
   bool operator ==(Object other) {
@@ -60,15 +59,16 @@ class ProcessorInfo {
 
   @override
   int get hashCode => Object.hash(
-        architecture,
-        coreCount,
-        maxFrequency,
-        processorName,
-        Object.hashAll(features),
-      );
+    architecture,
+    coreCount,
+    maxFrequency,
+    processorName,
+    Object.hashAll(features),
+  );
 
   @override
-  String toString() => 'ProcessorInfo('
+  String toString() =>
+      'ProcessorInfo('
       'architecture: $architecture, '
       'coreCount: $coreCount, '
       'maxFrequency: $maxFrequency, '

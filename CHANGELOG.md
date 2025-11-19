@@ -2,8 +2,32 @@
 
 All notable changes to this project will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [0.1.0] - 2025-11-19
+
+### Added
+- **Funding Information**: Added GitHub Sponsors funding link to `pubspec.yaml`
+- **Example GIF**: Added example demonstration GIF to README (300px width)
+- **Comprehensive Documentation**: Added 100% API documentation coverage for web platform implementation
+
+### Changed
+- **SDK Requirements**: Updated Dart SDK requirement to `>=3.8.0` and Flutter to `>=3.32.0`
+- **Code Formatting**: Fixed all formatting issues to pass static analysis
+- **Documentation**: Enhanced web plugin documentation with detailed dartdoc comments
+
+### Fixed
+- **Code Formatting**: Resolved formatting issues in `lib/flutter_device_info_plus_web.dart` and `lib/src/exceptions.dart`
+- **Static Analysis**: Achieved perfect 50/50 points in static analysis (no errors, warnings, lints, or formatting issues)
+
+### Verified
+- **Perfect Pana Score**: Achieved 160/160 points in pana analysis
+  - Follow Dart file conventions: 30/30 ✅
+  - Provide documentation: 20/20 ✅ (100% API documentation coverage)
+  - Platform support: 20/20 ✅ (all 6 platforms)
+  - Pass static analysis: 50/50 ✅
+  - Support up-to-date dependencies: 40/40 ✅
 
 ## [0.0.5] - 2024-01-05
 
@@ -285,3 +309,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ✅ Windows (Windows 10+)
 - ✅ macOS (macOS 10.14+)
 - ✅ Linux (Ubuntu 18.04+)
+
+[0.1.0]: https://github.com/Dhia-Bechattaoui/flutter_device_info_plus/compare/v0.0.5...HEAD
+[0.0.5]: https://github.com/Dhia-Bechattaoui/flutter_device_info_plus/compare/v0.0.4...v0.0.5
+[0.0.4]: https://github.com/Dhia-Bechattaoui/flutter_device_info_plus/compare/v0.0.3...v0.0.4
+[0.0.3]: https://github.com/Dhia-Bechattaoui/flutter_device_info_plus/compare/v0.0.2...v0.0.3
+[0.0.2]: https://github.com/Dhia-Bechattaoui/flutter_device_info_plus/compare/v0.0.1...v0.0.2
+[0.0.1]: https://github.com/Dhia-Bechattaoui/flutter_device_info_plus/releases/tag/v0.0.1

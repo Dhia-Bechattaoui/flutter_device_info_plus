@@ -65,16 +65,15 @@ class DisplayInfo {
     double? screenSizeInches,
     String? orientation,
     bool? isHdr,
-  }) =>
-      DisplayInfo(
-        screenWidth: screenWidth ?? this.screenWidth,
-        screenHeight: screenHeight ?? this.screenHeight,
-        pixelDensity: pixelDensity ?? this.pixelDensity,
-        refreshRate: refreshRate ?? this.refreshRate,
-        screenSizeInches: screenSizeInches ?? this.screenSizeInches,
-        orientation: orientation ?? this.orientation,
-        isHdr: isHdr ?? this.isHdr,
-      );
+  }) => DisplayInfo(
+    screenWidth: screenWidth ?? this.screenWidth,
+    screenHeight: screenHeight ?? this.screenHeight,
+    pixelDensity: pixelDensity ?? this.pixelDensity,
+    refreshRate: refreshRate ?? this.refreshRate,
+    screenSizeInches: screenSizeInches ?? this.screenSizeInches,
+    orientation: orientation ?? this.orientation,
+    isHdr: isHdr ?? this.isHdr,
+  );
 
   @override
   bool operator ==(Object other) {
@@ -94,17 +93,18 @@ class DisplayInfo {
 
   @override
   int get hashCode => Object.hash(
-        screenWidth,
-        screenHeight,
-        pixelDensity,
-        refreshRate,
-        screenSizeInches,
-        orientation,
-        isHdr,
-      );
+    screenWidth,
+    screenHeight,
+    pixelDensity,
+    refreshRate,
+    screenSizeInches,
+    orientation,
+    isHdr,
+  );
 
   @override
-  String toString() => 'DisplayInfo('
+  String toString() =>
+      'DisplayInfo('
       'screenWidth: $screenWidth, '
       'screenHeight: $screenHeight, '
       'pixelDensity: $pixelDensity, '

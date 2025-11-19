@@ -95,24 +95,23 @@ class DeviceInformation {
     SensorInfo? sensorInfo,
     NetworkInfo? networkInfo,
     SecurityInfo? securityInfo,
-  }) =>
-      DeviceInformation(
-        deviceName: deviceName ?? this.deviceName,
-        manufacturer: manufacturer ?? this.manufacturer,
-        model: model ?? this.model,
-        brand: brand ?? this.brand,
-        operatingSystem: operatingSystem ?? this.operatingSystem,
-        systemVersion: systemVersion ?? this.systemVersion,
-        buildNumber: buildNumber ?? this.buildNumber,
-        kernelVersion: kernelVersion ?? this.kernelVersion,
-        processorInfo: processorInfo ?? this.processorInfo,
-        memoryInfo: memoryInfo ?? this.memoryInfo,
-        displayInfo: displayInfo ?? this.displayInfo,
-        batteryInfo: batteryInfo ?? this.batteryInfo,
-        sensorInfo: sensorInfo ?? this.sensorInfo,
-        networkInfo: networkInfo ?? this.networkInfo,
-        securityInfo: securityInfo ?? this.securityInfo,
-      );
+  }) => DeviceInformation(
+    deviceName: deviceName ?? this.deviceName,
+    manufacturer: manufacturer ?? this.manufacturer,
+    model: model ?? this.model,
+    brand: brand ?? this.brand,
+    operatingSystem: operatingSystem ?? this.operatingSystem,
+    systemVersion: systemVersion ?? this.systemVersion,
+    buildNumber: buildNumber ?? this.buildNumber,
+    kernelVersion: kernelVersion ?? this.kernelVersion,
+    processorInfo: processorInfo ?? this.processorInfo,
+    memoryInfo: memoryInfo ?? this.memoryInfo,
+    displayInfo: displayInfo ?? this.displayInfo,
+    batteryInfo: batteryInfo ?? this.batteryInfo,
+    sensorInfo: sensorInfo ?? this.sensorInfo,
+    networkInfo: networkInfo ?? this.networkInfo,
+    securityInfo: securityInfo ?? this.securityInfo,
+  );
 
   @override
   bool operator ==(Object other) {
@@ -140,25 +139,26 @@ class DeviceInformation {
 
   @override
   int get hashCode => Object.hash(
-        deviceName,
-        manufacturer,
-        model,
-        brand,
-        operatingSystem,
-        systemVersion,
-        buildNumber,
-        kernelVersion,
-        processorInfo,
-        memoryInfo,
-        displayInfo,
-        batteryInfo,
-        sensorInfo,
-        networkInfo,
-        securityInfo,
-      );
+    deviceName,
+    manufacturer,
+    model,
+    brand,
+    operatingSystem,
+    systemVersion,
+    buildNumber,
+    kernelVersion,
+    processorInfo,
+    memoryInfo,
+    displayInfo,
+    batteryInfo,
+    sensorInfo,
+    networkInfo,
+    securityInfo,
+  );
 
   @override
-  String toString() => 'DeviceInformation('
+  String toString() =>
+      'DeviceInformation('
       'deviceName: $deviceName, '
       'manufacturer: $manufacturer, '
       'model: $model, '
