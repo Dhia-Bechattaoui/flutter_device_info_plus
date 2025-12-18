@@ -80,21 +80,21 @@ class DeviceInformation {
 
   /// Creates a copy of this [DeviceInformation] with the given fields replaced.
   DeviceInformation copyWith({
-    String? deviceName,
-    String? manufacturer,
-    String? model,
-    String? brand,
-    String? operatingSystem,
-    String? systemVersion,
-    String? buildNumber,
-    String? kernelVersion,
-    ProcessorInfo? processorInfo,
-    MemoryInfo? memoryInfo,
-    DisplayInfo? displayInfo,
-    BatteryInfo? batteryInfo,
-    SensorInfo? sensorInfo,
-    NetworkInfo? networkInfo,
-    SecurityInfo? securityInfo,
+    final String? deviceName,
+    final String? manufacturer,
+    final String? model,
+    final String? brand,
+    final String? operatingSystem,
+    final String? systemVersion,
+    final String? buildNumber,
+    final String? kernelVersion,
+    final ProcessorInfo? processorInfo,
+    final MemoryInfo? memoryInfo,
+    final DisplayInfo? displayInfo,
+    final BatteryInfo? batteryInfo,
+    final SensorInfo? sensorInfo,
+    final NetworkInfo? networkInfo,
+    final SecurityInfo? securityInfo,
   }) => DeviceInformation(
     deviceName: deviceName ?? this.deviceName,
     manufacturer: manufacturer ?? this.manufacturer,
@@ -114,7 +114,7 @@ class DeviceInformation {
   );
 
   @override
-  bool operator ==(Object other) {
+  bool operator ==(final Object other) {
     if (identical(this, other)) {
       return true;
     }

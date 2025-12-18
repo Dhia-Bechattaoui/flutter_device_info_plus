@@ -1,11 +1,10 @@
-import 'dart:async';
-
 import 'models/models.dart';
 
-/// The interface that implementations of flutter_device_info_plus must implement.
+/// The interface that implementations of flutter_device_info_plus must
+/// implement.
 ///
-/// Platform implementations should extend this class rather than implementing it
-/// directly to ensure that new methods are handled correctly.
+/// Platform implementations should extend this class rather than implementing
+/// it directly to ensure that new methods are handled correctly.
 abstract class FlutterDeviceInfoPlusPlatform {
   /// Creates a new platform interface.
   const FlutterDeviceInfoPlusPlatform();
@@ -18,7 +17,7 @@ abstract class FlutterDeviceInfoPlusPlatform {
       _instance ?? _throwNoPlatformImplementation();
 
   /// Sets the current platform implementation.
-  static set instance(FlutterDeviceInfoPlusPlatform instance) {
+  static set instance(final FlutterDeviceInfoPlusPlatform instance) {
     _instance = instance;
   }
 
@@ -50,7 +49,8 @@ abstract class FlutterDeviceInfoPlusPlatform {
   static Never _throwNoPlatformImplementation() {
     throw UnimplementedError(
       'No platform implementation found. '
-      'Make sure to register a platform implementation before using the plugin.',
+      'Make sure to register a platform implementation '
+      'before using the plugin.',
     );
   }
 }

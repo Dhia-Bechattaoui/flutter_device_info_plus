@@ -33,4 +33,3 @@ jobs:
             echo "Pana score is below 160 (current: $SCORE)"
             exit 1
           fi
-

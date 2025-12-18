@@ -43,30 +43,46 @@ class SecurityInfo {
   /// Gets a security score from 0 to 100 based on enabled features.
   int get securityScore {
     var score = 0;
-    if (isDeviceSecure) score += 20;
-    if (screenLockEnabled) score += 25;
-    if (hasFingerprint) score += 20;
-    if (hasFaceUnlock) score += 15;
-    if (isEncrypted) score += 20;
+    if (isDeviceSecure) {
+      score += 20;
+    }
+    if (screenLockEnabled) {
+      score += 25;
+    }
+    if (hasFingerprint) {
+      score += 20;
+    }
+    if (hasFaceUnlock) {
+      score += 15;
+    }
+    if (isEncrypted) {
+      score += 20;
+    }
     return score;
   }
 
   /// Gets a human-readable security level description.
   String get securityLevel {
     final score = securityScore;
-    if (score >= 80) return 'High';
-    if (score >= 60) return 'Medium';
-    if (score >= 40) return 'Low';
+    if (score >= 80) {
+      return 'High';
+    }
+    if (score >= 60) {
+      return 'Medium';
+    }
+    if (score >= 40) {
+      return 'Low';
+    }
     return 'Very Low';
   }
 
   /// Creates a copy of this [SecurityInfo] with the given fields replaced.
   SecurityInfo copyWith({
-    bool? isDeviceSecure,
-    bool? hasFingerprint,
-    bool? hasFaceUnlock,
-    bool? screenLockEnabled,
-    String? encryptionStatus,
+    final bool? isDeviceSecure,
+    final bool? hasFingerprint,
+    final bool? hasFaceUnlock,
+    final bool? screenLockEnabled,
+    final String? encryptionStatus,
   }) => SecurityInfo(
     isDeviceSecure: isDeviceSecure ?? this.isDeviceSecure,
     hasFingerprint: hasFingerprint ?? this.hasFingerprint,
@@ -76,8 +92,10 @@ class SecurityInfo {
   );
 
   @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) return true;
+  bool operator ==(final Object other) {
+    if (identical(this, other)) {
+      return true;
+    }
 
     return other is SecurityInfo &&
         other.isDeviceSecure == isDeviceSecure &&

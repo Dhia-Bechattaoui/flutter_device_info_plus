@@ -54,12 +54,12 @@ class BatteryInfo {
 
   /// Creates a copy of this [BatteryInfo] with the given fields replaced.
   BatteryInfo copyWith({
-    int? batteryLevel,
-    String? chargingStatus,
-    String? batteryHealth,
-    int? batteryCapacity,
-    double? batteryVoltage,
-    double? batteryTemperature,
+    final int? batteryLevel,
+    final String? chargingStatus,
+    final String? batteryHealth,
+    final int? batteryCapacity,
+    final double? batteryVoltage,
+    final double? batteryTemperature,
   }) => BatteryInfo(
     batteryLevel: batteryLevel ?? this.batteryLevel,
     chargingStatus: chargingStatus ?? this.chargingStatus,
@@ -70,7 +70,7 @@ class BatteryInfo {
   );
 
   @override
-  bool operator ==(Object other) {
+  bool operator ==(final Object other) {
     if (identical(this, other)) {
       return true;
     }
