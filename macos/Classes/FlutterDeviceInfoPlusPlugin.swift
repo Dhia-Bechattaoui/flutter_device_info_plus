@@ -7,6 +7,22 @@ import Network
 import LocalAuthentication
 import Darwin
 
+// IOKit Power Source API declarations
+@_silgen_name("IOPSCopyPowerSourcesInfo")
+func IOPSCopyPowerSourcesInfo() -> Unmanaged<CFDictionary>?
+
+@_silgen_name("IOPSCopyPowerSourcesList")
+func IOPSCopyPowerSourcesList(_ blob: CFDictionary) -> Unmanaged<CFArray>?
+
+@_silgen_name("IOPSGetPowerSourceDescription")
+func IOPSGetPowerSourceDescription(_ blob: CFDictionary, _ ps: CFTypeRef) -> Unmanaged<CFDictionary>?
+
+// IOKit Power Source Keys
+let kIOPSCurrentCapacityKey = "Current Capacity" as CFString
+let kIOPSMaxCapacityKey = "Max Capacity" as CFString
+let kIOPSPowerSourceStateKey = "Power Source State" as CFString
+let kIOPSACPowerValue = "AC Power" as CFString
+
 public class FlutterDeviceInfoPlusPlugin: NSObject, FlutterPlugin {
   public static func register(with registrar: FlutterPluginRegistrar) {
     let channel = FlutterMethodChannel(name: "flutter_device_info_plus", binaryMessenger: registrar.messenger)
@@ -35,13 +51,11 @@ public class FlutterDeviceInfoPlusPlugin: NSObject, FlutterPlugin {
   
   private func getDeviceInfo() -> [String: Any] {
     let processInfo = ProcessInfo.processInfo
-    let screen = NSScreen.main ?? NSScreen.screens.first ?? NSScreen()
-    let frame = screen.frame
     
-    var processorInfo = getProcessorInfo()
-    var memoryInfo = getMemoryInfo()
-    var displayInfo = getDisplayInfo()
-    var securityInfo = getSecurityInfo()
+    let processorInfo = getProcessorInfo()
+    let memoryInfo = getMemoryInfo()
+    let displayInfo = getDisplayInfo()
+    let securityInfo = getSecurityInfo()
     
     return [
       "deviceName": Host.current().localizedName ?? "Mac",
@@ -65,7 +79,7 @@ public class FlutterDeviceInfoPlusPlugin: NSObject, FlutterPlugin {
     let machineMirror = Mirror(reflecting: systemInfo.machine)
     let identifier = machineMirror.children.reduce("") { identifier, element in
       guard let value = element.value as? Int8, value != 0 else { return identifier }
-      return identifier + String(UnicodeScalar(UInt8(value))!)
+      return identifier + String(UnicodeScalar(UInt8(value)))
     }
     return identifier
   }
@@ -83,12 +97,12 @@ public class FlutterDeviceInfoPlusPlugin: NSObject, FlutterPlugin {
         String(validatingUTF8: $0) ?? "Unknown"
       }
     }
-    return release ?? "Unknown"
+    return release
   }
   
   private func getProcessorInfo() -> [String: Any] {
     var architecture = "x86_64"
-    var coreCount = ProcessInfo.processInfo.processorCount
+    let coreCount = ProcessInfo.processInfo.processorCount
     var maxFrequency = 0
     var processorName = "Intel Processor"
     var features: [String] = []
@@ -110,7 +124,7 @@ public class FlutterDeviceInfoPlusPlugin: NSObject, FlutterPlugin {
     let machineMirror = Mirror(reflecting: systemInfo.machine)
     let identifier = machineMirror.children.reduce("") { identifier, element in
       guard let value = element.value as? Int8, value != 0 else { return identifier }
-      return identifier + String(UnicodeScalar(UInt8(value))!)
+      return identifier + String(UnicodeScalar(UInt8(value)))
     }
     
     if identifier.contains("arm64") || identifier.contains("arm") {
@@ -197,7 +211,19 @@ public class FlutterDeviceInfoPlusPlugin: NSObject, FlutterPlugin {
     let screenSizeInches = sqrt(widthInches * widthInches + heightInches * heightInches)
     
     // Check HDR support
-    let isHdr = screen.colorSpace?.name == NSColorSpaceName.displayP3
+    // On macOS, we check if the display supports wide color gamut
+    var isHdr = false
+    if let colorSpace = screen.colorSpace {
+      // Check color space model and component count as indicators of HDR support
+      // Wide gamut color spaces typically have more components
+      if colorSpace.colorSpaceModel == .rgb {
+        // Display P3 and Extended sRGB are wide gamut color spaces
+        // We can check by comparing with known wide gamut color spaces
+        let displayP3 = NSColorSpace.displayP3
+        let extendedSRGB = NSColorSpace.extendedSRGB
+        isHdr = (colorSpace == displayP3 || colorSpace == extendedSRGB)
+      }
+    }
     
     let orientation = frame.width > frame.height ? "landscape" : "portrait"
     
@@ -214,34 +240,44 @@ public class FlutterDeviceInfoPlusPlugin: NSObject, FlutterPlugin {
   
   private func getBatteryInfo() -> [String: Any]? {
     // macOS battery info (for laptops)
-    let powerSource = IOPSCopyPowerSourcesInfo().takeRetainedValue()
-    let powerSourcesList = IOPSCopyPowerSourcesList(powerSource).takeRetainedValue() as [CFTypeRef]
-    
-    if powerSourcesList.isEmpty {
+    guard let powerSourcesInfo = IOPSCopyPowerSourcesInfo() else {
       return nil // Desktop Mac, no battery
     }
     
-    if let powerSource = powerSourcesList.first,
-       let description = IOPSGetPowerSourceDescription(powerSource, powerSource).takeUnretainedValue() as? [String: Any] {
-      
-      let currentCapacity = description[kIOPSCurrentCapacityKey] as? Int ?? 0
-      let maxCapacity = description[kIOPSMaxCapacityKey] as? Int ?? 100
-      let batteryLevel = maxCapacity > 0 ? (currentCapacity * 100 / maxCapacity) : 0
-      
-      let isCharging = description[kIOPSPowerSourceStateKey] as? String == kIOPSACPowerValue
-      let chargingStatus = isCharging ? "charging" : "discharging"
-      
-      return [
-        "batteryLevel": batteryLevel,
-        "chargingStatus": chargingStatus,
-        "batteryHealth": "good",
-        "batteryCapacity": maxCapacity,
-        "batteryVoltage": 0.0,
-        "batteryTemperature": 0.0
-      ]
+    let powerSourcesInfoDict = powerSourcesInfo.takeRetainedValue()
+    guard let powerSourcesList = IOPSCopyPowerSourcesList(powerSourcesInfoDict) else {
+      return nil // Desktop Mac, no battery
     }
     
-    return nil
+    let powerSourcesArray = powerSourcesList.takeRetainedValue()
+    let powerSources = powerSourcesArray as [CFTypeRef]
+    guard !powerSources.isEmpty,
+          let powerSource = powerSources.first else {
+      return nil // Desktop Mac, no battery
+    }
+    
+    guard let descriptionDict = IOPSGetPowerSourceDescription(powerSourcesInfoDict, powerSource),
+          let description = descriptionDict.takeUnretainedValue() as? [String: Any] else {
+      return nil
+    }
+    
+    // Use string keys directly
+    let currentCapacity = (description["Current Capacity"] as? NSNumber)?.intValue ?? 0
+    let maxCapacity = (description["Max Capacity"] as? NSNumber)?.intValue ?? 100
+    let batteryLevel = maxCapacity > 0 ? (currentCapacity * 100 / maxCapacity) : 0
+    
+    let powerState = description["Power Source State"] as? String ?? "Unknown"
+    let isCharging = powerState == "AC Power"
+    let chargingStatus = isCharging ? "charging" : "discharging"
+    
+    return [
+      "batteryLevel": batteryLevel,
+      "chargingStatus": chargingStatus,
+      "batteryHealth": "good",
+      "batteryCapacity": maxCapacity,
+      "batteryVoltage": 0.0,
+      "batteryTemperature": 0.0
+    ]
   }
   
   private func getSensorInfo() -> [String: Any] {
@@ -276,7 +312,7 @@ public class FlutterDeviceInfoPlusPlugin: NSObject, FlutterPlugin {
       
       monitor.pathUpdateHandler = { path in
         var connectionType = "none"
-        var isConnected = path.status == .satisfied
+        let isConnected = path.status == .satisfied
         
         if path.usesInterfaceType(.wifi) {
           connectionType = "wifi"
@@ -321,12 +357,12 @@ public class FlutterDeviceInfoPlusPlugin: NSObject, FlutterPlugin {
       defer { ptr = ptr?.pointee.ifa_next }
       
       let interface = ptr?.pointee
-      let addrFamily = interface?.ifa_addr.pointee.sa_family
+      let addrFamily = interface?.ifa_addr?.pointee.sa_family
       
-      if addrFamily == UInt8(AF_INET) {
+      if addrFamily == UInt8(AF_INET), let addr = interface?.ifa_addr {
         var hostname = [CChar](repeating: 0, count: Int(NI_MAXHOST))
-        getnameinfo(interface?.ifa_addr,
-                    socklen_t(interface?.ifa_addr.pointee.sa_len),
+        getnameinfo(addr,
+                    socklen_t(addr.pointee.sa_len),
                     &hostname,
                     socklen_t(hostname.count),
                     nil,
@@ -361,7 +397,7 @@ public class FlutterDeviceInfoPlusPlugin: NSObject, FlutterPlugin {
       if let addr = interface?.ifa_addr,
          addr.pointee.sa_family == UInt8(AF_LINK),
          let data = interface?.ifa_data {
-        let ptr = unsafeBitCast(data, to: UnsafeMutablePointer<sockaddr_dl>.self)
+        let ptr = data.assumingMemoryBound(to: sockaddr_dl.self)
         let len = Int(ptr.pointee.sdl_alen)
         if len == 6 {
           let macBytes = withUnsafePointer(to: &ptr.pointee.sdl_data) {
