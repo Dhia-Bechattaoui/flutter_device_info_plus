@@ -1,7 +1,12 @@
+#include "flutter_device_info_plus_plugin.h"
+
+// This must be included before many other Windows headers.
+#include <windows.h>
+
 #include <flutter/method_channel.h>
 #include <flutter/plugin_registrar_windows.h>
 #include <flutter/standard_method_codec.h>
-#include <windows.h>
+
 #include <winternl.h>
 #include <iphlpapi.h>
 #include <pdh.h>
@@ -12,45 +17,7 @@
 #include <vector>
 #include <map>
 
-namespace {
-
-using flutter::EncodableMap;
-using flutter::EncodableValue;
-
-class FlutterDeviceInfoPlusPlugin : public flutter::Plugin {
- public:
-  static void RegisterWithRegistrar(flutter::PluginRegistrarWindows *registrar);
-
-  FlutterDeviceInfoPlusPlugin();
-
-  virtual ~FlutterDeviceInfoPlusPlugin();
-
- private:
-  void HandleMethodCall(
-      const flutter::MethodCall<flutter::EncodableValue> &method_call,
-      std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
-
-  EncodableMap GetDeviceInfo();
-  EncodableMap GetBatteryInfo();
-  EncodableMap GetSensorInfo();
-  EncodableMap GetNetworkInfo();
-
-  std::string GetProcessorArchitecture();
-  int GetProcessorCoreCount();
-  int GetProcessorMaxFrequency();
-  std::string GetProcessorName();
-  std::vector<std::string> GetProcessorFeatures();
-  int64_t GetTotalPhysicalMemory();
-  int64_t GetAvailablePhysicalMemory();
-  int64_t GetTotalStorageSpace();
-  int64_t GetAvailableStorageSpace();
-  int GetScreenWidth();
-  int GetScreenHeight();
-  double GetPixelDensity();
-  double GetRefreshRate();
-  std::string GetIPAddress();
-  std::string GetMACAddress();
-};
+namespace flutter_device_info_plus {
 
 void FlutterDeviceInfoPlusPlugin::RegisterWithRegistrar(
     flutter::PluginRegistrarWindows *registrar) {
@@ -89,137 +56,153 @@ void FlutterDeviceInfoPlusPlugin::HandleMethodCall(
   }
 }
 
-EncodableMap FlutterDeviceInfoPlusPlugin::GetDeviceInfo() {
-  EncodableMap deviceInfo;
+flutter::EncodableMap FlutterDeviceInfoPlusPlugin::GetDeviceInfo() {
+  flutter::EncodableMap deviceInfo;
   
   // Basic device info
   char computerName[MAX_COMPUTERNAME_LENGTH + 1];
   DWORD size = sizeof(computerName);
   GetComputerNameA(computerName, &size);
-  deviceInfo[EncodableValue("deviceName")] = EncodableValue(std::string(computerName));
+  deviceInfo[flutter::EncodableValue("deviceName")] = flutter::EncodableValue(std::string(computerName));
   
-  OSVERSIONINFOEX osvi;
-  ZeroMemory(&osvi, sizeof(OSVERSIONINFOEX));
-  osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
-  GetVersionEx((OSVERSIONINFO*)&osvi);
+  // Use RtlGetVersion instead of deprecated GetVersionEx
+  typedef NTSTATUS (WINAPI *RtlGetVersionPtr)(PRTL_OSVERSIONINFOEXW);
+  HMODULE hMod = GetModuleHandleW(L"ntdll.dll");
+  if (hMod) {
+    RtlGetVersionPtr fxPtr = (RtlGetVersionPtr)GetProcAddress(hMod, "RtlGetVersion");
+    if (fxPtr != nullptr) {
+      RTL_OSVERSIONINFOEXW osvi = {0};
+      osvi.dwOSVersionInfoSize = sizeof(osvi);
+      if (fxPtr(&osvi) == 0) {
+        std::string version = std::to_string(osvi.dwMajorVersion) + "." + 
+                              std::to_string(osvi.dwMinorVersion);
+        deviceInfo[flutter::EncodableValue("systemVersion")] = flutter::EncodableValue(version);
+        deviceInfo[flutter::EncodableValue("buildNumber")] = flutter::EncodableValue(std::to_string(osvi.dwBuildNumber));
+      } else {
+        deviceInfo[flutter::EncodableValue("systemVersion")] = flutter::EncodableValue("10.0");
+        deviceInfo[flutter::EncodableValue("buildNumber")] = flutter::EncodableValue("0");
+      }
+    } else {
+      deviceInfo[flutter::EncodableValue("systemVersion")] = flutter::EncodableValue("10.0");
+      deviceInfo[flutter::EncodableValue("buildNumber")] = flutter::EncodableValue("0");
+    }
+  } else {
+    deviceInfo[flutter::EncodableValue("systemVersion")] = flutter::EncodableValue("10.0");
+    deviceInfo[flutter::EncodableValue("buildNumber")] = flutter::EncodableValue("0");
+  }
   
-  deviceInfo[EncodableValue("manufacturer")] = EncodableValue("Microsoft");
-  deviceInfo[EncodableValue("model")] = EncodableValue("Windows PC");
-  deviceInfo[EncodableValue("brand")] = EncodableValue("Microsoft");
-  deviceInfo[EncodableValue("operatingSystem")] = EncodableValue("Windows");
-  
-  std::string version = std::to_string(osvi.dwMajorVersion) + "." + 
-                        std::to_string(osvi.dwMinorVersion);
-  deviceInfo[EncodableValue("systemVersion")] = EncodableValue(version);
-  deviceInfo[EncodableValue("buildNumber")] = EncodableValue(std::to_string(osvi.dwBuildNumber));
-  deviceInfo[EncodableValue("kernelVersion")] = EncodableValue("NT");
+  deviceInfo[flutter::EncodableValue("manufacturer")] = flutter::EncodableValue("Microsoft");
+  deviceInfo[flutter::EncodableValue("model")] = flutter::EncodableValue("Windows PC");
+  deviceInfo[flutter::EncodableValue("brand")] = flutter::EncodableValue("Microsoft");
+  deviceInfo[flutter::EncodableValue("operatingSystem")] = flutter::EncodableValue("Windows");
+  deviceInfo[flutter::EncodableValue("kernelVersion")] = flutter::EncodableValue("NT");
   
   // Processor info
-  EncodableMap processorInfo;
-  processorInfo[EncodableValue("architecture")] = EncodableValue(GetProcessorArchitecture());
-  processorInfo[EncodableValue("coreCount")] = EncodableValue(GetProcessorCoreCount());
-  processorInfo[EncodableValue("maxFrequency")] = EncodableValue(GetProcessorMaxFrequency());
-  processorInfo[EncodableValue("processorName")] = EncodableValue(GetProcessorName());
+  flutter::EncodableMap processorInfo;
+  processorInfo[flutter::EncodableValue("architecture")] = flutter::EncodableValue(GetProcessorArchitecture());
+  processorInfo[flutter::EncodableValue("coreCount")] = flutter::EncodableValue(GetProcessorCoreCount());
+  processorInfo[flutter::EncodableValue("maxFrequency")] = flutter::EncodableValue(GetProcessorMaxFrequency());
+  processorInfo[flutter::EncodableValue("processorName")] = flutter::EncodableValue(GetProcessorName());
   
-  EncodableList features;
+  flutter::EncodableList features;
   for (const auto& feature : GetProcessorFeatures()) {
-    features.push_back(EncodableValue(feature));
+    features.push_back(flutter::EncodableValue(feature));
   }
-  processorInfo[EncodableValue("features")] = EncodableValue(features);
-  deviceInfo[EncodableValue("processorInfo")] = EncodableValue(processorInfo);
+  processorInfo[flutter::EncodableValue("features")] = flutter::EncodableValue(features);
+  deviceInfo[flutter::EncodableValue("processorInfo")] = flutter::EncodableValue(processorInfo);
   
   // Memory info
-  EncodableMap memoryInfo;
+  flutter::EncodableMap memoryInfo;
   int64_t totalMem = GetTotalPhysicalMemory();
   int64_t availMem = GetAvailablePhysicalMemory();
   int64_t totalStorage = GetTotalStorageSpace();
   int64_t availStorage = GetAvailableStorageSpace();
   
-  memoryInfo[EncodableValue("totalPhysicalMemory")] = EncodableValue(totalMem);
-  memoryInfo[EncodableValue("availablePhysicalMemory")] = EncodableValue(availMem);
-  memoryInfo[EncodableValue("totalStorageSpace")] = EncodableValue(totalStorage);
-  memoryInfo[EncodableValue("availableStorageSpace")] = EncodableValue(availStorage);
-  memoryInfo[EncodableValue("usedStorageSpace")] = EncodableValue(totalStorage - availStorage);
-  memoryInfo[EncodableValue("memoryUsagePercentage")] = 
-      EncodableValue(totalMem > 0 ? ((totalMem - availMem) * 100.0 / totalMem) : 0.0);
-  deviceInfo[EncodableValue("memoryInfo")] = EncodableValue(memoryInfo);
+  memoryInfo[flutter::EncodableValue("totalPhysicalMemory")] = flutter::EncodableValue(totalMem);
+  memoryInfo[flutter::EncodableValue("availablePhysicalMemory")] = flutter::EncodableValue(availMem);
+  memoryInfo[flutter::EncodableValue("totalStorageSpace")] = flutter::EncodableValue(totalStorage);
+  memoryInfo[flutter::EncodableValue("availableStorageSpace")] = flutter::EncodableValue(availStorage);
+  memoryInfo[flutter::EncodableValue("usedStorageSpace")] = flutter::EncodableValue(totalStorage - availStorage);
+  memoryInfo[flutter::EncodableValue("memoryUsagePercentage")] = 
+      flutter::EncodableValue(totalMem > 0 ? ((totalMem - availMem) * 100.0 / totalMem) : 0.0);
+  deviceInfo[flutter::EncodableValue("memoryInfo")] = flutter::EncodableValue(memoryInfo);
   
   // Display info
-  EncodableMap displayInfo;
+  flutter::EncodableMap displayInfo;
   int width = GetScreenWidth();
   int height = GetScreenHeight();
   double density = GetPixelDensity();
   double refreshRate = GetRefreshRate();
   
-  displayInfo[EncodableValue("screenWidth")] = EncodableValue(width);
-  displayInfo[EncodableValue("screenHeight")] = EncodableValue(height);
-  displayInfo[EncodableValue("pixelDensity")] = EncodableValue(density);
-  displayInfo[EncodableValue("refreshRate")] = EncodableValue(refreshRate);
-  displayInfo[EncodableValue("screenSizeInches")] = EncodableValue(24.0); // Approximate
-  displayInfo[EncodableValue("orientation")] = EncodableValue(width > height ? "landscape" : "portrait");
-  displayInfo[EncodableValue("isHdr")] = EncodableValue(false);
-  deviceInfo[EncodableValue("displayInfo")] = EncodableValue(displayInfo);
+  displayInfo[flutter::EncodableValue("screenWidth")] = flutter::EncodableValue(width);
+  displayInfo[flutter::EncodableValue("screenHeight")] = flutter::EncodableValue(height);
+  displayInfo[flutter::EncodableValue("pixelDensity")] = flutter::EncodableValue(density);
+  displayInfo[flutter::EncodableValue("refreshRate")] = flutter::EncodableValue(refreshRate);
+  displayInfo[flutter::EncodableValue("screenSizeInches")] = flutter::EncodableValue(24.0); // Approximate
+  displayInfo[flutter::EncodableValue("orientation")] = flutter::EncodableValue(width > height ? "landscape" : "portrait");
+  displayInfo[flutter::EncodableValue("isHdr")] = flutter::EncodableValue(false);
+  deviceInfo[flutter::EncodableValue("displayInfo")] = flutter::EncodableValue(displayInfo);
   
   // Security info
-  EncodableMap securityInfo;
-  securityInfo[EncodableValue("isDeviceSecure")] = EncodableValue(true);
-  securityInfo[EncodableValue("hasFingerprint")] = EncodableValue(false);
-  securityInfo[EncodableValue("hasFaceUnlock")] = EncodableValue(false);
-  securityInfo[EncodableValue("screenLockEnabled")] = EncodableValue(true);
-  securityInfo[EncodableValue("encryptionStatus")] = EncodableValue("encrypted");
-  deviceInfo[EncodableValue("securityInfo")] = EncodableValue(securityInfo);
+  flutter::EncodableMap securityInfo;
+  securityInfo[flutter::EncodableValue("isDeviceSecure")] = flutter::EncodableValue(true);
+  securityInfo[flutter::EncodableValue("hasFingerprint")] = flutter::EncodableValue(false);
+  securityInfo[flutter::EncodableValue("hasFaceUnlock")] = flutter::EncodableValue(false);
+  securityInfo[flutter::EncodableValue("screenLockEnabled")] = flutter::EncodableValue(true);
+  securityInfo[flutter::EncodableValue("encryptionStatus")] = flutter::EncodableValue("encrypted");
+  deviceInfo[flutter::EncodableValue("securityInfo")] = flutter::EncodableValue(securityInfo);
   
   return deviceInfo;
 }
 
-EncodableMap FlutterDeviceInfoPlusPlugin::GetBatteryInfo() {
-  EncodableMap batteryInfo;
+flutter::EncodableMap FlutterDeviceInfoPlusPlugin::GetBatteryInfo() {
+  flutter::EncodableMap batteryInfo;
   
   SYSTEM_POWER_STATUS status;
   if (GetSystemPowerStatus(&status)) {
-    batteryInfo[EncodableValue("batteryLevel")] = EncodableValue((int)status.BatteryLifePercent);
+    batteryInfo[flutter::EncodableValue("batteryLevel")] = flutter::EncodableValue((int)status.BatteryLifePercent);
     std::string chargingStatus = "unknown";
     if (status.ACLineStatus == 1) {
       chargingStatus = status.BatteryLifePercent == 100 ? "full" : "charging";
     } else {
       chargingStatus = "discharging";
     }
-    batteryInfo[EncodableValue("chargingStatus")] = EncodableValue(chargingStatus);
-    batteryInfo[EncodableValue("batteryHealth")] = EncodableValue("good");
-    batteryInfo[EncodableValue("batteryCapacity")] = EncodableValue(0);
-    batteryInfo[EncodableValue("batteryVoltage")] = EncodableValue(0.0);
-    batteryInfo[EncodableValue("batteryTemperature")] = EncodableValue(0.0);
+    batteryInfo[flutter::EncodableValue("chargingStatus")] = flutter::EncodableValue(chargingStatus);
+    batteryInfo[flutter::EncodableValue("batteryHealth")] = flutter::EncodableValue("good");
+    batteryInfo[flutter::EncodableValue("batteryCapacity")] = flutter::EncodableValue(0);
+    batteryInfo[flutter::EncodableValue("batteryVoltage")] = flutter::EncodableValue(0.0);
+    batteryInfo[flutter::EncodableValue("batteryTemperature")] = flutter::EncodableValue(0.0);
   } else {
     // No battery (desktop)
-    return EncodableMap(); // Return empty map, will be null in Dart
+    return flutter::EncodableMap(); // Return empty map, will be null in Dart
   }
   
   return batteryInfo;
 }
 
-EncodableMap FlutterDeviceInfoPlusPlugin::GetSensorInfo() {
-  EncodableMap sensorInfo;
-  EncodableList sensors;
+flutter::EncodableMap FlutterDeviceInfoPlusPlugin::GetSensorInfo() {
+  flutter::EncodableMap sensorInfo;
+  flutter::EncodableList sensors;
   
   // Windows doesn't have many sensors accessible via standard APIs
   // Most sensors would require device-specific drivers
-  sensors.push_back(EncodableValue("accelerometer")); // If available via drivers
+  sensors.push_back(flutter::EncodableValue("accelerometer")); // If available via drivers
   
-  sensorInfo[EncodableValue("availableSensors")] = EncodableValue(sensors);
+  sensorInfo[flutter::EncodableValue("availableSensors")] = flutter::EncodableValue(sensors);
   return sensorInfo;
 }
 
-EncodableMap FlutterDeviceInfoPlusPlugin::GetNetworkInfo() {
-  EncodableMap networkInfo;
+flutter::EncodableMap FlutterDeviceInfoPlusPlugin::GetNetworkInfo() {
+  flutter::EncodableMap networkInfo;
   
   std::string ipAddress = GetIPAddress();
   std::string macAddress = GetMACAddress();
   
-  networkInfo[EncodableValue("connectionType")] = EncodableValue("ethernet");
-  networkInfo[EncodableValue("networkSpeed")] = EncodableValue("Unknown");
-  networkInfo[EncodableValue("isConnected")] = EncodableValue(!ipAddress.empty());
-  networkInfo[EncodableValue("ipAddress")] = EncodableValue(ipAddress);
-  networkInfo[EncodableValue("macAddress")] = EncodableValue(macAddress);
+  networkInfo[flutter::EncodableValue("connectionType")] = flutter::EncodableValue("ethernet");
+  networkInfo[flutter::EncodableValue("networkSpeed")] = flutter::EncodableValue("Unknown");
+  networkInfo[flutter::EncodableValue("isConnected")] = flutter::EncodableValue(!ipAddress.empty());
+  networkInfo[flutter::EncodableValue("ipAddress")] = flutter::EncodableValue(ipAddress);
+  networkInfo[flutter::EncodableValue("macAddress")] = flutter::EncodableValue(macAddress);
   
   return networkInfo;
 }
@@ -366,8 +349,8 @@ std::string FlutterDeviceInfoPlusPlugin::GetIPAddress() {
   if (GetAdaptersInfo(adapterInfo, &dwBufLen) == ERROR_SUCCESS) {
     PIP_ADAPTER_INFO pAdapterInfo = adapterInfo;
     do {
-      if (pAdapterInfo->Type == MIB_IF_TYPE_ETHERNET || 
-          pAdapterInfo->Type == IF_TYPE_IEEE80211) {
+      // IF_TYPE_ETHERNET = 6, IF_TYPE_IEEE80211 = 71
+      if (pAdapterInfo->Type == 6 || pAdapterInfo->Type == 71) {
         return std::string(pAdapterInfo->IpAddressList.IpAddress.String);
       }
       pAdapterInfo = pAdapterInfo->Next;
@@ -383,8 +366,8 @@ std::string FlutterDeviceInfoPlusPlugin::GetMACAddress() {
   if (GetAdaptersInfo(adapterInfo, &dwBufLen) == ERROR_SUCCESS) {
     PIP_ADAPTER_INFO pAdapterInfo = adapterInfo;
     do {
-      if (pAdapterInfo->Type == MIB_IF_TYPE_ETHERNET || 
-          pAdapterInfo->Type == IF_TYPE_IEEE80211) {
+      // IF_TYPE_ETHERNET = 6, IF_TYPE_IEEE80211 = 71
+      if (pAdapterInfo->Type == 6 || pAdapterInfo->Type == 71) {
         char mac[18];
         sprintf_s(mac, "%02X:%02X:%02X:%02X:%02X:%02X",
                   pAdapterInfo->Address[0], pAdapterInfo->Address[1],
@@ -398,10 +381,4 @@ std::string FlutterDeviceInfoPlusPlugin::GetMACAddress() {
   return "unknown";
 }
 
-}  // namespace
-
-void FlutterDeviceInfoPlusPluginRegisterWithRegistrar(
-    flutter::PluginRegistrarWindows *registrar) {
-  FlutterDeviceInfoPlusPlugin::RegisterWithRegistrar(registrar);
-}
-
+}  // namespace flutter_device_info_plus

@@ -36,7 +36,7 @@ flutter:
       macos:
         pluginClass: FlutterDeviceInfoPlusPlugin
       windows:
-        pluginClass: FlutterDeviceInfoPlusPlugin
+        pluginClass: FlutterDeviceInfoPlusPluginCApi
       web:
         pluginClass: FlutterDeviceInfoPlusPlugin
         fileName: flutter_device_info_plus_web.dart
