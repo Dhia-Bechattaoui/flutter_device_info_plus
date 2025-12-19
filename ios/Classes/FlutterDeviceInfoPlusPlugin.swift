@@ -73,7 +73,7 @@ public class FlutterDeviceInfoPlusPlugin: NSObject, FlutterPlugin {
     let machineMirror = Mirror(reflecting: systemInfo.machine)
     let identifier = machineMirror.children.reduce("") { identifier, element in
       guard let value = element.value as? Int8, value != 0 else { return identifier }
-      return identifier + String(UnicodeScalar(UInt8(value))!)
+      return identifier + String(UnicodeScalar(UInt8(value)))
     }
     
     // Map identifier to readable name
@@ -135,7 +135,7 @@ public class FlutterDeviceInfoPlusPlugin: NSObject, FlutterPlugin {
     let machineMirror = Mirror(reflecting: systemInfo.machine)
     let identifier = machineMirror.children.reduce("") { identifier, element in
       guard let value = element.value as? Int8, value != 0 else { return identifier }
-      return identifier + String(UnicodeScalar(UInt8(value))!)
+      return identifier + String(UnicodeScalar(UInt8(value)))
     }
     
     // Detect processor based on device identifier
@@ -381,12 +381,12 @@ public class FlutterDeviceInfoPlusPlugin: NSObject, FlutterPlugin {
       defer { ptr = ptr?.pointee.ifa_next }
       
       let interface = ptr?.pointee
-      let addrFamily = interface?.ifa_addr.pointee.sa_family
+      let addrFamily = interface?.ifa_addr?.pointee.sa_family
       
-      if addrFamily == UInt8(AF_INET) {
+      if addrFamily == UInt8(AF_INET), let addr = interface?.ifa_addr {
         var hostname = [CChar](repeating: 0, count: Int(NI_MAXHOST))
-        getnameinfo(interface?.ifa_addr,
-                    socklen_t(interface?.ifa_addr.pointee.sa_len),
+        getnameinfo(addr,
+                    socklen_t(addr.pointee.sa_len),
                     &hostname,
                     socklen_t(hostname.count),
                     nil,
