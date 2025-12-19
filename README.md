@@ -48,7 +48,7 @@ Add this to your package's `pubspec.yaml` file:
 
 ```yaml
 dependencies:
-  flutter_device_info_plus: ^0.2.0
+  flutter_device_info_plus: ^0.2.1
 ```
 
 Then run:

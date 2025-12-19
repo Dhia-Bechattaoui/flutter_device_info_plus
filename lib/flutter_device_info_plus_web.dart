@@ -12,7 +12,7 @@ import 'package:web/web.dart' as web;
 import 'src/models/models.dart';
 import 'src/platform_interface.dart';
 
-/// Web implementation of FlutterDeviceInfoPlus
+/// Web implementation of FlutterDeviceInfoPlus.
 class FlutterDeviceInfoPlusPlugin extends FlutterDeviceInfoPlusPlatform {
   /// Registar the plugin with the Flutter engine
   static void registerWith(final Registrar registrar) {
@@ -594,9 +594,15 @@ extension type UABrandVersion(JSObject _) implements JSObject {
   external String get version;
 }
 
+/// JS interop for the NetworkInformation object.
 extension type JSNetworkInformation(JSObject _) implements JSObject {
+  /// The effective type of the connection meaning one of 'slow-2g', '2g', '3g', or '4g'.
   external String? get effectiveType;
+
+  /// The estimated effective round-trip time of the current connection, rounded to the nearest multiple of 25 milliseconds.
   external double? get downlink;
+
+  /// The type of connection a device is using to communicate with the network.
   external String? get type;
 }
 
@@ -627,10 +633,18 @@ extension type NavigatorWithBattery(web.Navigator navigator)
   external JSPromise<BatteryManager> getBattery();
 }
 
+/// JS interop for the BatteryManager object from the Battery Status API.
 extension type BatteryManager(JSObject _) implements JSObject {
+  /// Whether the battery is currently being charged.
   external bool get charging;
+
+  /// The current battery level as a value between 0.0 and 1.0.
   external double get level;
+
+  /// The time remaining until the battery is fully charged, in seconds.
   external double get chargingTime;
+
+  /// The time remaining until the battery is fully discharged, in seconds.
   external double get dischargingTime;
 }
 
