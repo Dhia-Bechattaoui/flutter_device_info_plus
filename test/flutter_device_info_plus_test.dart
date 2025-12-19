@@ -26,7 +26,7 @@ void main() {
           expect(info.sensorInfo, isA<SensorInfo>());
           expect(info.networkInfo, isA<NetworkInfo>());
           expect(info.securityInfo, isA<SecurityInfo>());
-        } catch (e) {
+        } on Object catch (e) {
           // Expected to fail in test environment without actual device info
           expect(e, isA<DeviceInfoException>());
         }
@@ -43,7 +43,7 @@ void main() {
             expect(batteryInfo.chargingStatus, isNotEmpty);
             expect(batteryInfo.batteryHealth, isNotEmpty);
           }
-        } catch (e) {
+        } on Object catch (e) {
           // Expected in test environment without platform channels
           expect(e, isA<DeviceInfoException>());
         }
@@ -57,7 +57,7 @@ void main() {
           expect(sensorInfo, isA<SensorInfo>());
           expect(sensorInfo.availableSensors, isA<List<SensorType>>());
           expect(sensorInfo.sensorCount, greaterThanOrEqualTo(0));
-        } catch (e) {
+        } on Object catch (e) {
           // Expected in test environment without platform channels
           expect(e, isA<DeviceInfoException>());
         }
@@ -71,7 +71,7 @@ void main() {
           expect(networkInfo, isA<NetworkInfo>());
           expect(networkInfo.connectionType, isNotEmpty);
           expect(networkInfo.isConnected, isA<bool>());
-        } catch (e) {
+        } on Object catch (e) {
           // Expected in test environment without platform channels
           expect(e, isA<DeviceInfoException>());
         }
@@ -471,7 +471,8 @@ void main() {
       expect(exception.feature, 'battery_info');
       expect(
         exception.toString(),
-        'UnsupportedFeatureException: Feature not supported (feature: battery_info)',
+        'UnsupportedFeatureException: Feature not supported '
+        '(feature: battery_info)',
       );
     });
 
@@ -484,7 +485,8 @@ void main() {
       expect(exception.permission, 'android.permission.BATTERY_STATS');
       expect(
         exception.toString(),
-        'PermissionException: Permission required (permission: android.permission.BATTERY_STATS)',
+        'PermissionException: Permission required '
+        '(permission: android.permission.BATTERY_STATS)',
       );
     });
 

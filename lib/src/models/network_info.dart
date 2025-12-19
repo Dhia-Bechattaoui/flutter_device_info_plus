@@ -2,7 +2,8 @@ import 'package:flutter/foundation.dart';
 
 /// Information about the device's network connectivity.
 ///
-/// Contains details about network connection type, speed, and interface information.
+/// Contains details about network connection type, speed,
+/// and interface information.
 @immutable
 class NetworkInfo {
   /// Creates a new [NetworkInfo] instance.
@@ -43,11 +44,11 @@ class NetworkInfo {
 
   /// Creates a copy of this [NetworkInfo] with the given fields replaced.
   NetworkInfo copyWith({
-    String? connectionType,
-    String? networkSpeed,
-    bool? isConnected,
-    String? ipAddress,
-    String? macAddress,
+    final String? connectionType,
+    final String? networkSpeed,
+    final bool? isConnected,
+    final String? ipAddress,
+    final String? macAddress,
   }) => NetworkInfo(
     connectionType: connectionType ?? this.connectionType,
     networkSpeed: networkSpeed ?? this.networkSpeed,
@@ -57,8 +58,10 @@ class NetworkInfo {
   );
 
   @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) return true;
+  bool operator ==(final Object other) {
+    if (identical(this, other)) {
+      return true;
+    }
 
     return other is NetworkInfo &&
         other.connectionType == connectionType &&

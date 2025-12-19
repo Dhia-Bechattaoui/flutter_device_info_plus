@@ -56,12 +56,12 @@ class MemoryInfo {
 
   /// Creates a copy of this [MemoryInfo] with the given fields replaced.
   MemoryInfo copyWith({
-    int? totalPhysicalMemory,
-    int? availablePhysicalMemory,
-    int? totalStorageSpace,
-    int? availableStorageSpace,
-    int? usedStorageSpace,
-    double? memoryUsagePercentage,
+    final int? totalPhysicalMemory,
+    final int? availablePhysicalMemory,
+    final int? totalStorageSpace,
+    final int? availableStorageSpace,
+    final int? usedStorageSpace,
+    final double? memoryUsagePercentage,
   }) => MemoryInfo(
     totalPhysicalMemory: totalPhysicalMemory ?? this.totalPhysicalMemory,
     availablePhysicalMemory:
@@ -73,7 +73,7 @@ class MemoryInfo {
   );
 
   @override
-  bool operator ==(Object other) {
+  bool operator ==(final Object other) {
     if (identical(this, other)) {
       return true;
     }

@@ -20,6 +20,11 @@ Enhanced device information with detailed hardware specs and capabilities. Get c
 - Sensor availability and capabilities
 - Network interface details
 - Operating system and build information
+- **Web Specific**:
+  - Full Browser Version via Client Hints
+  - Storage Quota and Usage
+  - Battery Status API
+  - Approximate Device Memory
 
 🎯 **Cross-Platform Support**
 - ✅ Android (API 21+)
@@ -43,7 +48,7 @@ Add this to your package's `pubspec.yaml` file:
 
 ```yaml
 dependencies:
-  flutter_device_info_plus: ^0.1.0
+  flutter_device_info_plus: ^0.2.0
 ```
 
 Then run:
@@ -300,12 +305,13 @@ class BatteryInfo {
 |----------|-------------|----------------|--------------|---------|--------------|-------------|------|
 | Android  | ✅          | ✅             | ✅           | ✅      | ✅           | N/A         | N/A  |
 | iOS      | ✅          | ✅             | ✅           | ✅      | ✅           | ✅          | N/A  |
-| Web      | ✅          | ⚠️*            | ⚠️*          | ✅      | ✅           | N/A         | ✅   |
+| Web      | ✅          | ✅**           | ✅**         | ✅      | ✅           | N/A         | ✅   |
 | Windows  | ✅          | ✅             | ✅           | ✅      | ✅           | N/A         | N/A  |
 | macOS    | ✅          | ✅             | ✅           | ✅      | ✅           | ✅          | N/A  |
 | Linux    | ✅          | ✅             | ⚠️*          | ✅      | ✅           | N/A         | N/A  |
 
-*Limited information available due to platform restrictions  
+*Limited information available due to platform restrictions
+**Enhanced on supporting browsers via Client Hints & Battery API  
 SPM = Swift Package Manager, WASM = WebAssembly
 
 ## Examples

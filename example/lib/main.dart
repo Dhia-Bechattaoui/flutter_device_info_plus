@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_device_info_plus/flutter_device_info_plus.dart';
 
@@ -10,7 +11,7 @@ class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   @override
-  Widget build(BuildContext context) => MaterialApp(
+  Widget build(final BuildContext context) => MaterialApp(
         title: 'Device Info Plus Example',
         theme: ThemeData(
           primarySwatch: Colors.blue,
@@ -41,7 +42,7 @@ class _DeviceInfoScreenState extends State<DeviceInfoScreen> {
   @override
   void initState() {
     super.initState();
-    _loadAllInfo();
+    unawaited(_loadAllInfo());
   }
 
   Future<void> _loadAllInfo() async {
@@ -58,6 +59,68 @@ class _DeviceInfoScreenState extends State<DeviceInfoScreen> {
       final sensorInfo = await _deviceInfo.getSensorInfo();
       final networkInfo = await _deviceInfo.getNetworkInfo();
 
+      debugPrint('========== DEVICE INFO DEBUG START ==========');
+      debugPrint('Platform: $platform');
+
+      debugPrint('--- Device Info ---');
+      debugPrint('Name: ${deviceInfo.deviceName}');
+      debugPrint('Manufacturer: ${deviceInfo.manufacturer}');
+      debugPrint('Model: ${deviceInfo.model}');
+      debugPrint('Brand: ${deviceInfo.brand}');
+      debugPrint(
+        'OS: ${deviceInfo.operatingSystem} ${deviceInfo.systemVersion}',
+      );
+      debugPrint('Build: ${deviceInfo.buildNumber}');
+      debugPrint('Kernel: ${deviceInfo.kernelVersion}');
+
+      debugPrint('--- Processor ---');
+      debugPrint('Arch: ${deviceInfo.processorInfo.architecture}');
+      debugPrint('Cores: ${deviceInfo.processorInfo.coreCount}');
+      debugPrint('Max Freq: ${deviceInfo.processorInfo.maxFrequency}');
+      debugPrint('Name: ${deviceInfo.processorInfo.processorName}');
+      debugPrint('Features: ${deviceInfo.processorInfo.features}');
+
+      debugPrint('--- Memory ---');
+      debugPrint('Total RAM: ${deviceInfo.memoryInfo.totalPhysicalMemory}');
+      debugPrint('Avail RAM: ${deviceInfo.memoryInfo.availablePhysicalMemory}');
+      debugPrint('Total Storage: ${deviceInfo.memoryInfo.totalStorageSpace}');
+      debugPrint(
+        'Avail Storage: ${deviceInfo.memoryInfo.availableStorageSpace}',
+      );
+
+      debugPrint('--- Display ---');
+      debugPrint(
+        'Screen: ${deviceInfo.displayInfo.screenWidth}x'
+        '${deviceInfo.displayInfo.screenHeight}',
+      );
+      debugPrint('Pixel Ratio: ${deviceInfo.displayInfo.pixelDensity}');
+      debugPrint('Refresh Rate: ${deviceInfo.displayInfo.refreshRate}');
+
+      debugPrint('--- Battery ---');
+      if (batteryInfo != null) {
+        debugPrint('Level: ${batteryInfo.batteryLevel}%');
+        debugPrint('Status: ${batteryInfo.chargingStatus}');
+        debugPrint('Health: ${batteryInfo.batteryHealth}');
+      } else {
+        debugPrint('Battery Info: null');
+      }
+
+      debugPrint('--- Sensors ---');
+      if (sensorInfo.availableSensors.isEmpty) {
+        debugPrint('No sensors available (or empty list returned)');
+      } else {
+        debugPrint('Sensors: ${sensorInfo.availableSensors}');
+      }
+
+      debugPrint('--- Network ---');
+      debugPrint('Type: ${networkInfo.connectionType}');
+      debugPrint('Speed: ${networkInfo.networkSpeed}');
+      debugPrint('Connected: ${networkInfo.isConnected}');
+      debugPrint('IP: ${networkInfo.ipAddress}');
+      debugPrint('MAC: ${networkInfo.macAddress}');
+
+      debugPrint('========== DEVICE INFO DEBUG END ==========');
+
       setState(() {
         _currentPlatform = platform;
         _deviceInformation = deviceInfo;
@@ -66,7 +129,7 @@ class _DeviceInfoScreenState extends State<DeviceInfoScreen> {
         _networkInfo = networkInfo;
         _isLoading = false;
       });
-    } catch (e) {
+    } on Object catch (e) {
       setState(() {
         _error = e.toString();
         _isLoading = false;
@@ -75,7 +138,7 @@ class _DeviceInfoScreenState extends State<DeviceInfoScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(final BuildContext context) => Scaffold(
         appBar: AppBar(
           title: const Text('Device Info Plus - All Features'),
           actions: [
@@ -159,86 +222,78 @@ class _DeviceInfoScreenState extends State<DeviceInfoScreen> {
             'Processor Information',
             Icons.memory,
             [
-              _InfoItem('Architecture',
-                  _deviceInformation!.processorInfo.architecture),
               _InfoItem(
-                  'Cores', '${_deviceInformation!.processorInfo.coreCount}'),
-              _InfoItem('Max Frequency',
-                  '${_deviceInformation!.processorInfo.maxFrequency} MHz'),
+                'Architecture',
+                _deviceInformation!.processorInfo.architecture,
+              ),
               _InfoItem(
-                  'Name', _deviceInformation!.processorInfo.processorName),
-              _InfoItem('Features',
-                  _deviceInformation!.processorInfo.features.join(', ')),
+                'Cores',
+                '${_deviceInformation!.processorInfo.coreCount}',
+              ),
+              _InfoItem(
+                'Max Frequency',
+                _deviceInformation!.processorInfo.maxFrequency > 0
+                    ? '${_deviceInformation!.processorInfo.maxFrequency} MHz'
+                    : 'Not Available (Web Security)',
+              ),
+              _InfoItem(
+                'Name',
+                _deviceInformation!.processorInfo.processorName,
+              ),
+              _InfoItem(
+                'Features',
+                _deviceInformation!.processorInfo.features.join(', '),
+              ),
             ],
           ),
           _buildInfoCard(
             'Memory Information',
             Icons.storage,
-            [
-              _InfoItem('Total RAM',
-                  '${_deviceInformation!.memoryInfo.totalPhysicalMemoryMB.toStringAsFixed(0)} MB'),
-              _InfoItem('Available RAM',
-                  '${_deviceInformation!.memoryInfo.availablePhysicalMemoryMB.toStringAsFixed(0)} MB'),
-              _InfoItem('Total Storage',
-                  '${_deviceInformation!.memoryInfo.totalStorageSpaceGB.toStringAsFixed(1)} GB'),
-              _InfoItem('Available Storage',
-                  '${_deviceInformation!.memoryInfo.availableStorageSpaceGB.toStringAsFixed(1)} GB'),
-              _InfoItem('Memory Usage',
-                  '${_deviceInformation!.memoryInfo.memoryUsagePercentage.toStringAsFixed(1)}%'),
-            ],
+            _buildMemoryItems(_deviceInformation!),
           ),
           _buildInfoCard(
             'Display Information',
             Icons.screen_lock_portrait,
-            [
-              _InfoItem('Resolution',
-                  _deviceInformation!.displayInfo.resolutionString),
-              _InfoItem('Pixel Density',
-                  '${_deviceInformation!.displayInfo.pixelDensity.toStringAsFixed(2)}x'),
-              _InfoItem(
-                  'PPI',
-                  _deviceInformation!.displayInfo.pixelsPerInch
-                      .toStringAsFixed(0)),
-              _InfoItem('Refresh Rate',
-                  '${_deviceInformation!.displayInfo.refreshRate} Hz'),
-              _InfoItem('Screen Size',
-                  '${_deviceInformation!.displayInfo.screenSizeInches.toStringAsFixed(1)}"'),
-              _InfoItem(
-                  'Orientation', _deviceInformation!.displayInfo.orientation),
-              _InfoItem('HDR Support',
-                  _deviceInformation!.displayInfo.isHdr ? 'Yes' : 'No'),
-            ],
+            _buildDisplayItems(_deviceInformation!),
           ),
           _buildInfoCard(
             'Security Information',
             Icons.security,
             [
               _InfoItem(
-                  'Device Secure',
-                  _deviceInformation!.securityInfo.isDeviceSecure
-                      ? 'Yes'
-                      : 'No'),
+                'Device Secure',
+                _deviceInformation!.securityInfo.isDeviceSecure ? 'Yes' : 'No',
+              ),
               _InfoItem(
-                  'Fingerprint',
-                  _deviceInformation!.securityInfo.hasFingerprint
-                      ? 'Available'
-                      : 'Not Available'),
+                'Fingerprint',
+                _deviceInformation!.securityInfo.hasFingerprint
+                    ? 'Available'
+                    : 'Not Available',
+              ),
               _InfoItem(
-                  'Face Unlock',
-                  _deviceInformation!.securityInfo.hasFaceUnlock
-                      ? 'Available'
-                      : 'Not Available'),
+                'Face Unlock',
+                _deviceInformation!.securityInfo.hasFaceUnlock
+                    ? 'Available'
+                    : 'Not Available',
+              ),
               _InfoItem(
-                  'Screen Lock',
-                  _deviceInformation!.securityInfo.screenLockEnabled
-                      ? 'Enabled'
-                      : 'Disabled'),
-              _InfoItem('Encryption',
-                  _deviceInformation!.securityInfo.encryptionStatus),
-              _InfoItem('Security Score',
-                  '${_deviceInformation!.securityInfo.securityScore}/100'),
-              _InfoItem('Security Level',
-                  _deviceInformation!.securityInfo.securityLevel),
+                'Screen Lock',
+                _deviceInformation!.securityInfo.screenLockEnabled
+                    ? 'Enabled'
+                    : 'Disabled',
+              ),
+              _InfoItem(
+                'Encryption',
+                _deviceInformation!.securityInfo.encryptionStatus,
+              ),
+              _InfoItem(
+                'Security Score',
+                '${_deviceInformation!.securityInfo.securityScore}/100',
+              ),
+              _InfoItem(
+                'Security Level',
+                _deviceInformation!.securityInfo.securityLevel,
+              ),
             ],
           ),
         ],
@@ -253,18 +308,28 @@ class _DeviceInfoScreenState extends State<DeviceInfoScreen> {
                   _InfoItem('Status', _batteryInfo!.chargingStatus),
                   _InfoItem('Health', _batteryInfo!.batteryHealth),
                   _InfoItem('Capacity', '${_batteryInfo!.batteryCapacity} mAh'),
-                  _InfoItem('Voltage',
-                      '${_batteryInfo!.batteryVoltage.toStringAsFixed(2)} V'),
-                  _InfoItem('Temperature',
-                      '${_batteryInfo!.batteryTemperature.toStringAsFixed(1)}°C'),
                   _InfoItem(
-                      'Is Charging', _batteryInfo!.isCharging ? 'Yes' : 'No'),
+                    'Voltage',
+                    '${_batteryInfo!.batteryVoltage.toStringAsFixed(2)} V',
+                  ),
                   _InfoItem(
-                      'Is Low', _batteryInfo!.isLowBattery ? 'Yes' : 'No'),
+                    'Temperature',
+                    '${_batteryInfo!.batteryTemperature.toStringAsFixed(1)}°C',
+                  ),
+                  _InfoItem(
+                    'Is Charging',
+                    _batteryInfo!.isCharging ? 'Yes' : 'No',
+                  ),
+                  _InfoItem(
+                    'Is Low',
+                    _batteryInfo!.isLowBattery ? 'Yes' : 'No',
+                  ),
                 ]
               : [
                   const _InfoItem(
-                      'Status', 'Not Available (Desktop/No Battery)'),
+                    'Status',
+                    'Not Available (Desktop/No Battery)',
+                  ),
                 ],
         ),
 
@@ -276,50 +341,47 @@ class _DeviceInfoScreenState extends State<DeviceInfoScreen> {
               ? [
                   _InfoItem('Total Sensors', '${_sensorInfo!.sensorCount}'),
                   _InfoItem(
-                      'Accelerometer',
-                      _sensorInfo!.hasAccelerometer
-                          ? 'Available'
-                          : 'Not Available'),
+                    'Accelerometer',
+                    _sensorInfo!.hasAccelerometer
+                        ? 'Available'
+                        : 'Not Available',
+                  ),
                   _InfoItem(
-                      'Gyroscope',
-                      _sensorInfo!.hasGyroscope
-                          ? 'Available'
-                          : 'Not Available'),
+                    'Gyroscope',
+                    _sensorInfo!.hasGyroscope ? 'Available' : 'Not Available',
+                  ),
                   _InfoItem(
-                      'Magnetometer',
-                      _sensorInfo!.hasMagnetometer
-                          ? 'Available'
-                          : 'Not Available'),
+                    'Magnetometer',
+                    _sensorInfo!.hasMagnetometer
+                        ? 'Available'
+                        : 'Not Available',
+                  ),
                   _InfoItem(
-                      'Proximity',
-                      _sensorInfo!.hasProximity
-                          ? 'Available'
-                          : 'Not Available'),
+                    'Proximity',
+                    _sensorInfo!.hasProximity ? 'Available' : 'Not Available',
+                  ),
                   _InfoItem(
-                      'Light Sensor',
-                      _sensorInfo!.hasLightSensor
-                          ? 'Available'
-                          : 'Not Available'),
+                    'Light Sensor',
+                    _sensorInfo!.hasLightSensor ? 'Available' : 'Not Available',
+                  ),
                   _InfoItem(
-                      'Barometer',
-                      _sensorInfo!.hasBarometer
-                          ? 'Available'
-                          : 'Not Available'),
+                    'Barometer',
+                    _sensorInfo!.hasBarometer ? 'Available' : 'Not Available',
+                  ),
                   _InfoItem(
-                      'Step Counter',
-                      _sensorInfo!.hasStepCounter
-                          ? 'Available'
-                          : 'Not Available'),
+                    'Step Counter',
+                    _sensorInfo!.hasStepCounter ? 'Available' : 'Not Available',
+                  ),
                   _InfoItem(
-                      'Heart Rate',
-                      _sensorInfo!.hasHeartRate
-                          ? 'Available'
-                          : 'Not Available'),
+                    'Heart Rate',
+                    _sensorInfo!.hasHeartRate ? 'Available' : 'Not Available',
+                  ),
                   _InfoItem(
-                      'Available Sensors',
-                      _sensorInfo!.availableSensors
-                          .map((s) => s.toString().split('.').last)
-                          .join(', ')),
+                    'Available Sensors',
+                    _sensorInfo!.availableSensors
+                        .map((final s) => s.toString().split('.').last)
+                        .join(', '),
+                  ),
                 ]
               : [
                   const _InfoItem('Status', 'Loading...'),
@@ -335,15 +397,23 @@ class _DeviceInfoScreenState extends State<DeviceInfoScreen> {
                   _InfoItem('Connection Type', _networkInfo!.connectionType),
                   _InfoItem('Network Speed', _networkInfo!.networkSpeed),
                   _InfoItem(
-                      'Connected', _networkInfo!.isConnected ? 'Yes' : 'No'),
+                    'Connected',
+                    _networkInfo!.isConnected ? 'Yes' : 'No',
+                  ),
                   _InfoItem('IP Address', _networkInfo!.ipAddress),
                   _InfoItem('MAC Address', _networkInfo!.macAddress),
                   _InfoItem(
-                      'WiFi', _networkInfo!.isWifiConnected ? 'Yes' : 'No'),
+                    'WiFi',
+                    _networkInfo!.connectionType == 'wifi' ? 'Yes' : 'No',
+                  ),
                   _InfoItem(
-                      'Mobile', _networkInfo!.isMobileConnected ? 'Yes' : 'No'),
-                  _InfoItem('Ethernet',
-                      _networkInfo!.isEthernetConnected ? 'Yes' : 'No'),
+                    'Mobile',
+                    _networkInfo!.connectionType == 'mobile' ? 'Yes' : 'No',
+                  ),
+                  _InfoItem(
+                    'Ethernet',
+                    _networkInfo!.isEthernetConnected ? 'Yes' : 'No',
+                  ),
                 ]
               : [
                   const _InfoItem('Status', 'Loading...'),
@@ -355,7 +425,56 @@ class _DeviceInfoScreenState extends State<DeviceInfoScreen> {
     );
   }
 
-  Widget _buildInfoCard(String title, IconData icon, List<_InfoItem> items) =>
+  List<_InfoItem> _buildMemoryItems(final DeviceInformation info) {
+    final mem = info.memoryInfo;
+    return [
+      _InfoItem(
+        'Total RAM',
+        '${mem.totalPhysicalMemoryMB.toStringAsFixed(0)} MB',
+      ),
+      _InfoItem(
+        'Available RAM',
+        '${mem.availablePhysicalMemoryMB.toStringAsFixed(0)} MB',
+      ),
+      _InfoItem(
+        'Total Storage',
+        '${mem.totalStorageSpaceGB.toStringAsFixed(1)} GB',
+      ),
+      _InfoItem(
+        'Available Storage',
+        '${mem.availableStorageSpaceGB.toStringAsFixed(1)} GB',
+      ),
+      _InfoItem(
+        'Memory Usage',
+        '${mem.memoryUsagePercentage.toStringAsFixed(1)}%',
+      ),
+    ];
+  }
+
+  List<_InfoItem> _buildDisplayItems(final DeviceInformation info) {
+    final display = info.displayInfo;
+    return [
+      _InfoItem('Resolution', display.resolutionString),
+      _InfoItem('Pixel Density', '${display.pixelDensity.toStringAsFixed(2)}x'),
+      _InfoItem(
+        'PPI',
+        display.pixelsPerInch.toStringAsFixed(0),
+      ),
+      _InfoItem('Refresh Rate', '${display.refreshRate} Hz'),
+      _InfoItem(
+        'Screen Size',
+        '${display.screenSizeInches.toStringAsFixed(1)}"',
+      ),
+      _InfoItem('Orientation', display.orientation),
+      _InfoItem('HDR Support', display.isHdr ? 'Yes' : 'No'),
+    ];
+  }
+
+  Widget _buildInfoCard(
+    final String title,
+    final IconData icon,
+    final List<_InfoItem> items,
+  ) =>
       Card(
         margin: const EdgeInsets.only(bottom: 16),
         elevation: 2,
@@ -380,13 +499,14 @@ class _DeviceInfoScreenState extends State<DeviceInfoScreen> {
                 ],
               ),
               const SizedBox(height: 16),
-              ...items.map((item) => _buildInfoRow(item.label, item.value)),
+              ...items
+                  .map((final item) => _buildInfoRow(item.label, item.value)),
             ],
           ),
         ),
       );
 
-  Widget _buildInfoRow(String label, String value) => Padding(
+  Widget _buildInfoRow(final String label, final String value) => Padding(
         padding: const EdgeInsets.symmetric(vertical: 4),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,

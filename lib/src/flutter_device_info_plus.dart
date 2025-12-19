@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import 'exceptions.dart';
 import 'models/models.dart';
+import 'platform_interface.dart';
 
 /// Enhanced device information with detailed hardware specs and capabilities.
 ///
@@ -21,12 +22,11 @@ import 'models/models.dart';
 /// print('RAM: ${info.memoryInfo.totalPhysicalMemory} bytes');
 /// ```
 class FlutterDeviceInfoPlus {
+  /// Creates a new instance of [FlutterDeviceInfoPlus].
+  const FlutterDeviceInfoPlus();
   static const MethodChannel _channel = MethodChannel(
     'flutter_device_info_plus',
   );
-
-  /// Creates a new instance of [FlutterDeviceInfoPlus].
-  const FlutterDeviceInfoPlus();
 
   /// Gets comprehensive device information including hardware specs,
   /// system details, and capabilities.
@@ -38,10 +38,10 @@ class FlutterDeviceInfoPlus {
   Future<DeviceInformation> getDeviceInfo() async {
     try {
       if (kIsWeb) {
-        return _getWebDeviceInfo();
+        return FlutterDeviceInfoPlusPlatform.instance.getDeviceInfo();
       }
 
-      final Map<dynamic, dynamic> data =
+      final data =
           await _channel.invokeMethod('getDeviceInfo') as Map<dynamic, dynamic>;
 
       // Get additional info
@@ -81,7 +81,8 @@ class FlutterDeviceInfoPlus {
 
   /// Gets the current platform name as a string.
   ///
-  /// Returns the platform name: 'android', 'ios', 'windows', 'macos', 'linux', or 'web'.
+  /// Returns the platform name: 'android', 'ios', 'windows', 'macos',
+  /// 'linux', or 'web'.
   String getCurrentPlatform() {
     if (kIsWeb) {
       return 'web';
@@ -111,10 +112,10 @@ class FlutterDeviceInfoPlus {
   Future<BatteryInfo?> getBatteryInfo() async {
     try {
       if (kIsWeb) {
-        return null;
+        return FlutterDeviceInfoPlusPlatform.instance.getBatteryInfo();
       }
 
-      final Map<dynamic, dynamic>? data =
+      final data =
           await _channel.invokeMethod('getBatteryInfo')
               as Map<dynamic, dynamic>?;
 
@@ -143,17 +144,15 @@ class FlutterDeviceInfoPlus {
   Future<SensorInfo> getSensorInfo() async {
     try {
       if (kIsWeb) {
-        // Web sensors are limited
-        return const SensorInfo(availableSensors: []);
+        return FlutterDeviceInfoPlusPlatform.instance.getSensorInfo();
       }
 
-      final Map<dynamic, dynamic> data =
+      final data =
           await _channel.invokeMethod('getSensorInfo') as Map<dynamic, dynamic>;
 
-      final List<dynamic> sensors =
-          data['availableSensors'] as List<dynamic>? ?? [];
+      final sensors = data['availableSensors'] as List<dynamic>? ?? [];
       final sensorTypes = sensors
-          .map((s) => _stringToSensorType(s as String))
+          .map((final s) => _stringToSensorType(s as String))
           .whereType<SensorType>()
           .toList();
 
@@ -170,10 +169,10 @@ class FlutterDeviceInfoPlus {
   Future<NetworkInfo> getNetworkInfo() async {
     try {
       if (kIsWeb) {
-        return _getWebNetworkInfo();
+        return FlutterDeviceInfoPlusPlatform.instance.getNetworkInfo();
       }
 
-      final Map<dynamic, dynamic> data =
+      final data =
           await _channel.invokeMethod('getNetworkInfo')
               as Map<dynamic, dynamic>;
 
@@ -189,7 +188,7 @@ class FlutterDeviceInfoPlus {
     }
   }
 
-  ProcessorInfo _parseProcessorInfo(Map<dynamic, dynamic>? data) {
+  ProcessorInfo _parseProcessorInfo(final Map<dynamic, dynamic>? data) {
     if (data == null) {
       return const ProcessorInfo(
         architecture: 'unknown',
@@ -211,7 +210,7 @@ class FlutterDeviceInfoPlus {
     );
   }
 
-  MemoryInfo _parseMemoryInfo(Map<dynamic, dynamic>? data) {
+  MemoryInfo _parseMemoryInfo(final Map<dynamic, dynamic>? data) {
     if (data == null) {
       return const MemoryInfo(
         totalPhysicalMemory: 0,
@@ -236,14 +235,14 @@ class FlutterDeviceInfoPlus {
     );
   }
 
-  DisplayInfo _parseDisplayInfo(Map<dynamic, dynamic>? data) {
+  DisplayInfo _parseDisplayInfo(final Map<dynamic, dynamic>? data) {
     if (data == null) {
       return const DisplayInfo(
         screenWidth: 0,
         screenHeight: 0,
-        pixelDensity: 1.0,
-        refreshRate: 60.0,
-        screenSizeInches: 0.0,
+        pixelDensity: 1,
+        refreshRate: 60,
+        screenSizeInches: 0,
         orientation: 'portrait',
         isHdr: false,
       );
@@ -260,7 +259,7 @@ class FlutterDeviceInfoPlus {
     );
   }
 
-  SecurityInfo _parseSecurityInfo(Map<dynamic, dynamic>? data) {
+  SecurityInfo _parseSecurityInfo(final Map<dynamic, dynamic>? data) {
     if (data == null) {
       return const SecurityInfo(
         isDeviceSecure: false,
@@ -280,7 +279,7 @@ class FlutterDeviceInfoPlus {
     );
   }
 
-  SensorType? _stringToSensorType(String sensor) {
+  SensorType? _stringToSensorType(final String sensor) {
     switch (sensor.toLowerCase()) {
       case 'accelerometer':
         return SensorType.accelerometer;
@@ -315,72 +314,5 @@ class FlutterDeviceInfoPlus {
       default:
         return null;
     }
-  }
-
-  Future<DeviceInformation> _getWebDeviceInfo() async {
-    // Web implementation - use browser APIs where available
-    final sensorInfo = await getSensorInfo();
-    final networkInfo = await _getWebNetworkInfo();
-
-    // Get screen info from browser
-    final screenWidth = 1920; // Would use window.screen.width in JS
-    final screenHeight = 1080; // Would use window.screen.height in JS
-    final pixelDensity = 1.0; // Would use window.devicePixelRatio in JS
-
-    return DeviceInformation(
-      deviceName: 'Web Browser',
-      manufacturer: 'Unknown',
-      model: 'Web Browser',
-      brand: 'Web',
-      operatingSystem: 'Web',
-      systemVersion: 'Unknown',
-      buildNumber: 'Unknown',
-      kernelVersion: 'Web Engine',
-      processorInfo: const ProcessorInfo(
-        architecture: 'JavaScript',
-        coreCount: 4,
-        maxFrequency: 0,
-        processorName: 'JavaScript Engine',
-        features: ['WebAssembly', 'WebGL'],
-      ),
-      memoryInfo: const MemoryInfo(
-        totalPhysicalMemory: 8589934592,
-        availablePhysicalMemory: 4294967296,
-        totalStorageSpace: 1073741824,
-        availableStorageSpace: 536870912,
-        usedStorageSpace: 536870912,
-        memoryUsagePercentage: 50,
-      ),
-      displayInfo: DisplayInfo(
-        screenWidth: screenWidth,
-        screenHeight: screenHeight,
-        pixelDensity: pixelDensity,
-        refreshRate: 60.0,
-        screenSizeInches: 24.0,
-        orientation: screenWidth > screenHeight ? 'landscape' : 'portrait',
-        isHdr: false,
-      ),
-      batteryInfo: null,
-      sensorInfo: sensorInfo,
-      networkInfo: networkInfo,
-      securityInfo: const SecurityInfo(
-        isDeviceSecure: false,
-        hasFingerprint: false,
-        hasFaceUnlock: false,
-        screenLockEnabled: false,
-        encryptionStatus: 'https',
-      ),
-    );
-  }
-
-  Future<NetworkInfo> _getWebNetworkInfo() async {
-    // Web network info is limited
-    return const NetworkInfo(
-      connectionType: 'unknown',
-      networkSpeed: 'Unknown',
-      isConnected: true,
-      ipAddress: 'unknown',
-      macAddress: 'unknown',
-    );
   }
 }

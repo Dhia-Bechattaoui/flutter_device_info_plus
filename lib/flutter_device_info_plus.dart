@@ -1,8 +1,8 @@
 /// Enhanced device information with detailed hardware specs and capabilities.
 ///
-/// This library provides comprehensive device information including CPU details,
-/// memory specifications, display information, battery status, sensors, and more
-/// across all Flutter platforms.
+/// This library provides comprehensive device information including
+/// CPU details, memory specifications, display information, battery status,
+/// sensors, and more across all Flutter platforms.
 library;
 
 export 'src/exceptions.dart';

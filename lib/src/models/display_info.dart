@@ -58,13 +58,13 @@ class DisplayInfo {
 
   /// Creates a copy of this [DisplayInfo] with the given fields replaced.
   DisplayInfo copyWith({
-    int? screenWidth,
-    int? screenHeight,
-    double? pixelDensity,
-    double? refreshRate,
-    double? screenSizeInches,
-    String? orientation,
-    bool? isHdr,
+    final int? screenWidth,
+    final int? screenHeight,
+    final double? pixelDensity,
+    final double? refreshRate,
+    final double? screenSizeInches,
+    final String? orientation,
+    final bool? isHdr,
   }) => DisplayInfo(
     screenWidth: screenWidth ?? this.screenWidth,
     screenHeight: screenHeight ?? this.screenHeight,
@@ -76,7 +76,7 @@ class DisplayInfo {
   );
 
   @override
-  bool operator ==(Object other) {
+  bool operator ==(final Object other) {
     if (identical(this, other)) {
       return true;
     }

@@ -47,12 +47,14 @@ class SensorInfo {
   int get sensorCount => availableSensors.length;
 
   /// Creates a copy of this [SensorInfo] with the given fields replaced.
-  SensorInfo copyWith({List<SensorType>? availableSensors}) =>
+  SensorInfo copyWith({final List<SensorType>? availableSensors}) =>
       SensorInfo(availableSensors: availableSensors ?? this.availableSensors);
 
   @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) return true;
+  bool operator ==(final Object other) {
+    if (identical(this, other)) {
+      return true;
+    }
 
     return other is SensorInfo &&
         _listEquals(other.availableSensors, availableSensors);
@@ -64,12 +66,20 @@ class SensorInfo {
   @override
   String toString() => 'SensorInfo(availableSensors: $availableSensors)';
 
-  bool _listEquals<T>(List<T>? a, List<T>? b) {
-    if (a == null) return b == null;
-    if (b == null || a.length != b.length) return false;
-    if (identical(a, b)) return true;
+  bool _listEquals<T>(final List<T>? a, final List<T>? b) {
+    if (a == null) {
+      return b == null;
+    }
+    if (b == null || a.length != b.length) {
+      return false;
+    }
+    if (identical(a, b)) {
+      return true;
+    }
     for (var index = 0; index < a.length; index += 1) {
-      if (a[index] != b[index]) return false;
+      if (a[index] != b[index]) {
+        return false;
+      }
     }
     return true;
   }

@@ -32,11 +32,11 @@ class ProcessorInfo {
 
   /// Creates a copy of this [ProcessorInfo] with the given fields replaced.
   ProcessorInfo copyWith({
-    String? architecture,
-    int? coreCount,
-    int? maxFrequency,
-    String? processorName,
-    List<String>? features,
+    final String? architecture,
+    final int? coreCount,
+    final int? maxFrequency,
+    final String? processorName,
+    final List<String>? features,
   }) => ProcessorInfo(
     architecture: architecture ?? this.architecture,
     coreCount: coreCount ?? this.coreCount,
@@ -46,8 +46,10 @@ class ProcessorInfo {
   );
 
   @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) return true;
+  bool operator ==(final Object other) {
+    if (identical(this, other)) {
+      return true;
+    }
 
     return other is ProcessorInfo &&
         other.architecture == architecture &&
@@ -76,12 +78,20 @@ class ProcessorInfo {
       'features: $features'
       ')';
 
-  bool _listEquals<T>(List<T>? a, List<T>? b) {
-    if (a == null) return b == null;
-    if (b == null || a.length != b.length) return false;
-    if (identical(a, b)) return true;
+  bool _listEquals<T>(final List<T>? a, final List<T>? b) {
+    if (a == null) {
+      return b == null;
+    }
+    if (b == null || a.length != b.length) {
+      return false;
+    }
+    if (identical(a, b)) {
+      return true;
+    }
     for (var index = 0; index < a.length; index += 1) {
-      if (a[index] != b[index]) return false;
+      if (a[index] != b[index]) {
+        return false;
+      }
     }
     return true;
   }
