@@ -1,9 +1,13 @@
-#include <flutter/method_channel.h>
-#include <flutter/plugin_registrar_linux.h>
-#include <flutter/standard_method_codec.h>
+#include "include/flutter_device_info_plus/flutter_device_info_plus_plugin.h"
+
+#include <flutter_linux/flutter_linux.h>
+#include <gtk/gtk.h>
 #include <sys/utsname.h>
 #include <sys/sysinfo.h>
 #include <sys/statvfs.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h>
 #include <fstream>
 #include <sstream>
 #include <memory>
@@ -12,85 +16,22 @@
 #include <unistd.h>
 #include <ifaddrs.h>
 #include <net/if.h>
+#include <linux/if_packet.h>
 #include <linux/if_link.h>
 #include <cstring>
 
-namespace {
+#define FLUTTER_DEVICE_INFO_PLUS_PLUGIN(obj) \
+  (G_TYPE_CHECK_INSTANCE_CAST((obj), flutter_device_info_plus_plugin_get_type(), \
+                              FlutterDeviceInfoPlusPlugin))
 
-using flutter::EncodableMap;
-using flutter::EncodableValue;
-using flutter::EncodableList;
-
-class FlutterDeviceInfoPlusPlugin : public flutter::Plugin {
- public:
-  static void RegisterWithRegistrar(flutter::PluginRegistrarLinux *registrar);
-
-  FlutterDeviceInfoPlusPlugin();
-
-  virtual ~FlutterDeviceInfoPlusPlugin();
-
- private:
-  void HandleMethodCall(
-      const flutter::MethodCall<flutter::EncodableValue> &method_call,
-      std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
-
-  EncodableMap GetDeviceInfo();
-  EncodableMap GetBatteryInfo();
-  EncodableMap GetSensorInfo();
-  EncodableMap GetNetworkInfo();
-
-  std::string ReadFile(const std::string& path);
-  std::string GetProcessorArchitecture();
-  int GetProcessorCoreCount();
-  int GetProcessorMaxFrequency();
-  std::string GetProcessorName();
-  std::vector<std::string> GetProcessorFeatures();
-  int64_t GetTotalPhysicalMemory();
-  int64_t GetAvailablePhysicalMemory();
-  int64_t GetTotalStorageSpace();
-  int64_t GetAvailableStorageSpace();
-  std::string GetIPAddress();
-  std::string GetMACAddress();
+struct _FlutterDeviceInfoPlusPlugin {
+  GObject parent_instance;
 };
 
-void FlutterDeviceInfoPlusPlugin::RegisterWithRegistrar(
-    flutter::PluginRegistrarLinux *registrar) {
-  auto channel =
-      std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
-          registrar->messenger(), "flutter_device_info_plus",
-          &flutter::StandardMethodCodec::GetInstance());
+G_DEFINE_TYPE(FlutterDeviceInfoPlusPlugin, flutter_device_info_plus_plugin, g_object_get_type())
 
-  auto plugin = std::make_unique<FlutterDeviceInfoPlusPlugin>();
-
-  channel->SetMethodCallHandler(
-      [plugin_pointer = plugin.get()](const auto &call, auto result) {
-        plugin_pointer->HandleMethodCall(call, std::move(result));
-      });
-
-  registrar->AddPlugin(std::move(plugin));
-}
-
-FlutterDeviceInfoPlusPlugin::FlutterDeviceInfoPlusPlugin() {}
-
-FlutterDeviceInfoPlusPlugin::~FlutterDeviceInfoPlusPlugin() {}
-
-void FlutterDeviceInfoPlusPlugin::HandleMethodCall(
-    const flutter::MethodCall<flutter::EncodableValue> &method_call,
-    std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
-  if (method_call.method_name().compare("getDeviceInfo") == 0) {
-    result->Success(GetDeviceInfo());
-  } else if (method_call.method_name().compare("getBatteryInfo") == 0) {
-    result->Success(GetBatteryInfo());
-  } else if (method_call.method_name().compare("getSensorInfo") == 0) {
-    result->Success(GetSensorInfo());
-  } else if (method_call.method_name().compare("getNetworkInfo") == 0) {
-    result->Success(GetNetworkInfo());
-  } else {
-    result->NotImplemented();
-  }
-}
-
-std::string FlutterDeviceInfoPlusPlugin::ReadFile(const std::string& path) {
+// Helper function to read file content
+static std::string ReadFile(const std::string& path) {
   std::ifstream file(path);
   if (file.is_open()) {
     std::stringstream buffer;
@@ -100,142 +41,38 @@ std::string FlutterDeviceInfoPlusPlugin::ReadFile(const std::string& path) {
   return "";
 }
 
-EncodableMap FlutterDeviceInfoPlusPlugin::GetDeviceInfo() {
-  EncodableMap deviceInfo;
-  
-  // Get hostname
-  char hostname[256];
-  gethostname(hostname, sizeof(hostname));
-  deviceInfo[EncodableValue("deviceName")] = EncodableValue(std::string(hostname));
-  
-  // Get system info
-  struct utsname unameInfo;
-  uname(&unameInfo);
-  
-  deviceInfo[EncodableValue("manufacturer")] = EncodableValue("Unknown");
-  deviceInfo[EncodableValue("model")] = EncodableValue("Linux PC");
-  deviceInfo[EncodableValue("brand")] = EncodableValue("Linux");
-  deviceInfo[EncodableValue("operatingSystem")] = EncodableValue("Linux");
-  deviceInfo[EncodableValue("systemVersion")] = EncodableValue(std::string(unameInfo.release));
-  deviceInfo[EncodableValue("buildNumber")] = EncodableValue(std::string(unameInfo.version));
-  deviceInfo[EncodableValue("kernelVersion")] = EncodableValue(std::string(unameInfo.release));
-  
-  // Processor info
-  EncodableMap processorInfo;
-  processorInfo[EncodableValue("architecture")] = EncodableValue(GetProcessorArchitecture());
-  processorInfo[EncodableValue("coreCount")] = EncodableValue(GetProcessorCoreCount());
-  processorInfo[EncodableValue("maxFrequency")] = EncodableValue(GetProcessorMaxFrequency());
-  processorInfo[EncodableValue("processorName")] = EncodableValue(GetProcessorName());
-  
-  EncodableList features;
-  for (const auto& feature : GetProcessorFeatures()) {
-    features.push_back(EncodableValue(feature));
-  }
-  processorInfo[EncodableValue("features")] = EncodableValue(features);
-  deviceInfo[EncodableValue("processorInfo")] = EncodableValue(processorInfo);
-  
-  // Memory info
-  EncodableMap memoryInfo;
-  int64_t totalMem = GetTotalPhysicalMemory();
-  int64_t availMem = GetAvailablePhysicalMemory();
-  int64_t totalStorage = GetTotalStorageSpace();
-  int64_t availStorage = GetAvailableStorageSpace();
-  
-  memoryInfo[EncodableValue("totalPhysicalMemory")] = EncodableValue(totalMem);
-  memoryInfo[EncodableValue("availablePhysicalMemory")] = EncodableValue(availMem);
-  memoryInfo[EncodableValue("totalStorageSpace")] = EncodableValue(totalStorage);
-  memoryInfo[EncodableValue("availableStorageSpace")] = EncodableValue(availStorage);
-  memoryInfo[EncodableValue("usedStorageSpace")] = EncodableValue(totalStorage - availStorage);
-  memoryInfo[EncodableValue("memoryUsagePercentage")] = 
-      EncodableValue(totalMem > 0 ? ((totalMem - availMem) * 100.0 / totalMem) : 0.0);
-  deviceInfo[EncodableValue("memoryInfo")] = EncodableValue(memoryInfo);
-  
-  // Display info (approximate, would need X11 for real values)
-  EncodableMap displayInfo;
-  displayInfo[EncodableValue("screenWidth")] = EncodableValue(1920);
-  displayInfo[EncodableValue("screenHeight")] = EncodableValue(1080);
-  displayInfo[EncodableValue("pixelDensity")] = EncodableValue(1.0);
-  displayInfo[EncodableValue("refreshRate")] = EncodableValue(60.0);
-  displayInfo[EncodableValue("screenSizeInches")] = EncodableValue(24.0);
-  displayInfo[EncodableValue("orientation")] = EncodableValue("landscape");
-  displayInfo[EncodableValue("isHdr")] = EncodableValue(false);
-  deviceInfo[EncodableValue("displayInfo")] = EncodableValue(displayInfo);
-  
-  // Security info
-  EncodableMap securityInfo;
-  securityInfo[EncodableValue("isDeviceSecure")] = EncodableValue(true);
-  securityInfo[EncodableValue("hasFingerprint")] = EncodableValue(false);
-  securityInfo[EncodableValue("hasFaceUnlock")] = EncodableValue(false);
-  securityInfo[EncodableValue("screenLockEnabled")] = EncodableValue(true);
-  securityInfo[EncodableValue("encryptionStatus")] = EncodableValue("unknown");
-  deviceInfo[EncodableValue("securityInfo")] = EncodableValue(securityInfo);
-  
-  return deviceInfo;
+// Helper function to create FlValue from string
+static FlValue* CreateStringValue(const std::string& str) {
+  return fl_value_new_string(str.c_str());
 }
 
-EncodableMap FlutterDeviceInfoPlusPlugin::GetBatteryInfo() {
-  EncodableMap batteryInfo;
-  
-  // Try to read battery info from /sys/class/power_supply
-  std::string batteryPath = "/sys/class/power_supply/BAT0";
-  std::string capacity = ReadFile(batteryPath + "/capacity");
-  std::string status = ReadFile(batteryPath + "/status");
-  
-  if (!capacity.empty()) {
-    int level = std::stoi(capacity);
-    batteryInfo[EncodableValue("batteryLevel")] = EncodableValue(level);
-    
-    std::string chargingStatus = "unknown";
-    if (!status.empty()) {
-      if (status.find("Charging") != std::string::npos) {
-        chargingStatus = "charging";
-      } else if (status.find("Full") != std::string::npos) {
-        chargingStatus = "full";
-      } else {
-        chargingStatus = "discharging";
-      }
-    }
-    batteryInfo[EncodableValue("chargingStatus")] = EncodableValue(chargingStatus);
-    batteryInfo[EncodableValue("batteryHealth")] = EncodableValue("good");
-    batteryInfo[EncodableValue("batteryCapacity")] = EncodableValue(0);
-    batteryInfo[EncodableValue("batteryVoltage")] = EncodableValue(0.0);
-    batteryInfo[EncodableValue("batteryTemperature")] = EncodableValue(0.0);
-  } else {
-    // No battery (desktop)
-    return EncodableMap(); // Return empty map, will be null in Dart
-  }
-  
-  return batteryInfo;
+// Helper function to create FlValue from int
+static FlValue* CreateIntValue(int64_t value) {
+  return fl_value_new_int(value);
 }
 
-EncodableMap FlutterDeviceInfoPlusPlugin::GetSensorInfo() {
-  EncodableMap sensorInfo;
-  EncodableList sensors;
-  
-  // Check for available sensors in /sys/bus/iio/devices
-  // This is a simplified check
-  sensors.push_back(EncodableValue("accelerometer")); // If available
-  
-  sensorInfo[EncodableValue("availableSensors")] = EncodableValue(sensors);
-  return sensorInfo;
+// Helper function to create FlValue from double
+static FlValue* CreateDoubleValue(double value) {
+  return fl_value_new_float(value);
 }
 
-EncodableMap FlutterDeviceInfoPlusPlugin::GetNetworkInfo() {
-  EncodableMap networkInfo;
-  
-  std::string ipAddress = GetIPAddress();
-  std::string macAddress = GetMACAddress();
-  
-  networkInfo[EncodableValue("connectionType")] = EncodableValue("ethernet");
-  networkInfo[EncodableValue("networkSpeed")] = EncodableValue("Unknown");
-  networkInfo[EncodableValue("isConnected")] = EncodableValue(!ipAddress.empty());
-  networkInfo[EncodableValue("ipAddress")] = EncodableValue(ipAddress);
-  networkInfo[EncodableValue("macAddress")] = EncodableValue(macAddress);
-  
-  return networkInfo;
+// Helper function to create FlValue from bool
+static FlValue* CreateBoolValue(bool value) {
+  return fl_value_new_bool(value);
 }
 
-std::string FlutterDeviceInfoPlusPlugin::GetProcessorArchitecture() {
+// Helper function to create FlValue map
+static FlValue* CreateMapValue() {
+  return fl_value_new_map();
+}
+
+// Helper function to set map value
+static void SetMapValue(FlValue* map, const char* key, FlValue* value) {
+  fl_value_set_take(map, CreateStringValue(key), value);
+}
+
+// Get processor architecture
+static std::string GetProcessorArchitecture() {
   struct utsname unameInfo;
   uname(&unameInfo);
   std::string machine = unameInfo.machine;
@@ -255,11 +92,13 @@ std::string FlutterDeviceInfoPlusPlugin::GetProcessorArchitecture() {
   return machine;
 }
 
-int FlutterDeviceInfoPlusPlugin::GetProcessorCoreCount() {
+// Get processor core count
+static int GetProcessorCoreCount() {
   return sysconf(_SC_NPROCESSORS_ONLN);
 }
 
-int FlutterDeviceInfoPlusPlugin::GetProcessorMaxFrequency() {
+// Get processor max frequency
+static int GetProcessorMaxFrequency() {
   std::string cpuinfo = ReadFile("/proc/cpuinfo");
   if (!cpuinfo.empty()) {
     size_t pos = cpuinfo.find("cpu MHz");
@@ -268,7 +107,6 @@ int FlutterDeviceInfoPlusPlugin::GetProcessorMaxFrequency() {
       size_t end = cpuinfo.find("\n", start);
       if (end != std::string::npos) {
         std::string freq = cpuinfo.substr(start, end - start);
-        // Trim whitespace
         freq.erase(0, freq.find_first_not_of(" \t"));
         freq.erase(freq.find_last_not_of(" \t") + 1);
         return static_cast<int>(std::stod(freq));
@@ -278,7 +116,8 @@ int FlutterDeviceInfoPlusPlugin::GetProcessorMaxFrequency() {
   return 0;
 }
 
-std::string FlutterDeviceInfoPlusPlugin::GetProcessorName() {
+// Get processor name
+static std::string GetProcessorName() {
   std::string cpuinfo = ReadFile("/proc/cpuinfo");
   if (!cpuinfo.empty()) {
     size_t pos = cpuinfo.find("model name");
@@ -287,7 +126,6 @@ std::string FlutterDeviceInfoPlusPlugin::GetProcessorName() {
       size_t end = cpuinfo.find("\n", start);
       if (end != std::string::npos) {
         std::string name = cpuinfo.substr(start, end - start);
-        // Trim whitespace
         name.erase(0, name.find_first_not_of(" \t"));
         name.erase(name.find_last_not_of(" \t") + 1);
         return name;
@@ -297,36 +135,38 @@ std::string FlutterDeviceInfoPlusPlugin::GetProcessorName() {
   return "Unknown Processor";
 }
 
-std::vector<std::string> FlutterDeviceInfoPlusPlugin::GetProcessorFeatures() {
-  std::vector<std::string> features;
+// Get processor features
+static FlValue* GetProcessorFeatures() {
+  FlValue* features = fl_value_new_list();
   std::string cpuinfo = ReadFile("/proc/cpuinfo");
   
   if (cpuinfo.find("neon") != std::string::npos) {
-    features.push_back("NEON");
+    fl_value_append_take(features, CreateStringValue("NEON"));
   }
   if (cpuinfo.find("vfp") != std::string::npos) {
-    features.push_back("VFP");
+    fl_value_append_take(features, CreateStringValue("VFP"));
   }
   if (cpuinfo.find("avx") != std::string::npos) {
-    features.push_back("AVX");
+    fl_value_append_take(features, CreateStringValue("AVX"));
   }
   if (cpuinfo.find("avx2") != std::string::npos) {
-    features.push_back("AVX2");
+    fl_value_append_take(features, CreateStringValue("AVX2"));
   }
   if (cpuinfo.find("sse") != std::string::npos) {
-    features.push_back("SSE");
+    fl_value_append_take(features, CreateStringValue("SSE"));
   }
   if (cpuinfo.find("sse2") != std::string::npos) {
-    features.push_back("SSE2");
+    fl_value_append_take(features, CreateStringValue("SSE2"));
   }
   if (cpuinfo.find("sse4") != std::string::npos) {
-    features.push_back("SSE4");
+    fl_value_append_take(features, CreateStringValue("SSE4"));
   }
   
   return features;
 }
 
-int64_t FlutterDeviceInfoPlusPlugin::GetTotalPhysicalMemory() {
+// Get total physical memory
+static int64_t GetTotalPhysicalMemory() {
   struct sysinfo info;
   if (sysinfo(&info) == 0) {
     return info.totalram * info.mem_unit;
@@ -334,7 +174,8 @@ int64_t FlutterDeviceInfoPlusPlugin::GetTotalPhysicalMemory() {
   return 0;
 }
 
-int64_t FlutterDeviceInfoPlusPlugin::GetAvailablePhysicalMemory() {
+// Get available physical memory
+static int64_t GetAvailablePhysicalMemory() {
   struct sysinfo info;
   if (sysinfo(&info) == 0) {
     return info.freeram * info.mem_unit;
@@ -342,7 +183,8 @@ int64_t FlutterDeviceInfoPlusPlugin::GetAvailablePhysicalMemory() {
   return 0;
 }
 
-int64_t FlutterDeviceInfoPlusPlugin::GetTotalStorageSpace() {
+// Get total storage space
+static int64_t GetTotalStorageSpace() {
   struct statvfs stat;
   if (statvfs("/", &stat) == 0) {
     return stat.f_blocks * stat.f_frsize;
@@ -350,7 +192,8 @@ int64_t FlutterDeviceInfoPlusPlugin::GetTotalStorageSpace() {
   return 0;
 }
 
-int64_t FlutterDeviceInfoPlusPlugin::GetAvailableStorageSpace() {
+// Get available storage space
+static int64_t GetAvailableStorageSpace() {
   struct statvfs stat;
   if (statvfs("/", &stat) == 0) {
     return stat.f_bavail * stat.f_frsize;
@@ -358,7 +201,8 @@ int64_t FlutterDeviceInfoPlusPlugin::GetAvailableStorageSpace() {
   return 0;
 }
 
-std::string FlutterDeviceInfoPlusPlugin::GetIPAddress() {
+// Get IP address
+static std::string GetIPAddress() {
   struct ifaddrs *ifaddr, *ifa;
   std::string ipAddress = "unknown";
   
@@ -384,7 +228,8 @@ std::string FlutterDeviceInfoPlusPlugin::GetIPAddress() {
   return ipAddress;
 }
 
-std::string FlutterDeviceInfoPlusPlugin::GetMACAddress() {
+// Get MAC address
+static std::string GetMACAddress() {
   struct ifaddrs *ifaddr, *ifa;
   std::string macAddress = "unknown";
   
@@ -414,10 +259,202 @@ std::string FlutterDeviceInfoPlusPlugin::GetMACAddress() {
   return macAddress;
 }
 
-}  // namespace
-
-void FlutterDeviceInfoPlusPluginRegisterWithRegistrar(
-    flutter::PluginRegistrarLinux *registrar) {
-  FlutterDeviceInfoPlusPlugin::RegisterWithRegistrar(registrar);
+// Get device info
+static FlValue* GetDeviceInfo() {
+  FlValue* deviceInfo = CreateMapValue();
+  
+  // Get hostname
+  char hostname[256];
+  gethostname(hostname, sizeof(hostname));
+  SetMapValue(deviceInfo, "deviceName", CreateStringValue(hostname));
+  
+  // Get system info
+  struct utsname unameInfo;
+  uname(&unameInfo);
+  
+  SetMapValue(deviceInfo, "manufacturer", CreateStringValue("Unknown"));
+  SetMapValue(deviceInfo, "model", CreateStringValue("Linux PC"));
+  SetMapValue(deviceInfo, "brand", CreateStringValue("Linux"));
+  SetMapValue(deviceInfo, "operatingSystem", CreateStringValue("Linux"));
+  SetMapValue(deviceInfo, "systemVersion", CreateStringValue(unameInfo.release));
+  SetMapValue(deviceInfo, "buildNumber", CreateStringValue(unameInfo.version));
+  SetMapValue(deviceInfo, "kernelVersion", CreateStringValue(unameInfo.release));
+  
+  // Processor info
+  FlValue* processorInfo = CreateMapValue();
+  SetMapValue(processorInfo, "architecture", CreateStringValue(GetProcessorArchitecture()));
+  SetMapValue(processorInfo, "coreCount", CreateIntValue(GetProcessorCoreCount()));
+  SetMapValue(processorInfo, "maxFrequency", CreateIntValue(GetProcessorMaxFrequency()));
+  SetMapValue(processorInfo, "processorName", CreateStringValue(GetProcessorName()));
+  SetMapValue(processorInfo, "features", GetProcessorFeatures());
+  SetMapValue(deviceInfo, "processorInfo", processorInfo);
+  
+  // Memory info
+  FlValue* memoryInfo = CreateMapValue();
+  int64_t totalMem = GetTotalPhysicalMemory();
+  int64_t availMem = GetAvailablePhysicalMemory();
+  int64_t totalStorage = GetTotalStorageSpace();
+  int64_t availStorage = GetAvailableStorageSpace();
+  
+  SetMapValue(memoryInfo, "totalPhysicalMemory", CreateIntValue(totalMem));
+  SetMapValue(memoryInfo, "availablePhysicalMemory", CreateIntValue(availMem));
+  SetMapValue(memoryInfo, "totalStorageSpace", CreateIntValue(totalStorage));
+  SetMapValue(memoryInfo, "availableStorageSpace", CreateIntValue(availStorage));
+  SetMapValue(memoryInfo, "usedStorageSpace", CreateIntValue(totalStorage - availStorage));
+  double memUsage = totalMem > 0 ? ((totalMem - availMem) * 100.0 / totalMem) : 0.0;
+  SetMapValue(memoryInfo, "memoryUsagePercentage", CreateDoubleValue(memUsage));
+  SetMapValue(deviceInfo, "memoryInfo", memoryInfo);
+  
+  // Display info (approximate)
+  FlValue* displayInfo = CreateMapValue();
+  SetMapValue(displayInfo, "screenWidth", CreateIntValue(1920));
+  SetMapValue(displayInfo, "screenHeight", CreateIntValue(1080));
+  SetMapValue(displayInfo, "pixelDensity", CreateDoubleValue(1.0));
+  SetMapValue(displayInfo, "refreshRate", CreateDoubleValue(60.0));
+  SetMapValue(displayInfo, "screenSizeInches", CreateDoubleValue(24.0));
+  SetMapValue(displayInfo, "orientation", CreateStringValue("landscape"));
+  SetMapValue(displayInfo, "isHdr", CreateBoolValue(false));
+  SetMapValue(deviceInfo, "displayInfo", displayInfo);
+  
+  // Security info
+  FlValue* securityInfo = CreateMapValue();
+  SetMapValue(securityInfo, "isDeviceSecure", CreateBoolValue(true));
+  SetMapValue(securityInfo, "hasFingerprint", CreateBoolValue(false));
+  SetMapValue(securityInfo, "hasFaceUnlock", CreateBoolValue(false));
+  SetMapValue(securityInfo, "screenLockEnabled", CreateBoolValue(true));
+  SetMapValue(securityInfo, "encryptionStatus", CreateStringValue("unknown"));
+  SetMapValue(deviceInfo, "securityInfo", securityInfo);
+  
+  return deviceInfo;
 }
 
+// Get battery info
+static FlValue* GetBatteryInfo() {
+  FlValue* batteryInfo = CreateMapValue();
+  
+  // Try to read battery info from /sys/class/power_supply
+  std::string batteryPath = "/sys/class/power_supply/BAT0";
+  std::string capacity = ReadFile(batteryPath + "/capacity");
+  std::string status = ReadFile(batteryPath + "/status");
+  
+  if (!capacity.empty()) {
+    int level = std::stoi(capacity);
+    SetMapValue(batteryInfo, "batteryLevel", CreateIntValue(level));
+    
+    std::string chargingStatus = "unknown";
+    if (!status.empty()) {
+      if (status.find("Charging") != std::string::npos) {
+        chargingStatus = "charging";
+      } else if (status.find("Full") != std::string::npos) {
+        chargingStatus = "full";
+      } else {
+        chargingStatus = "discharging";
+      }
+    }
+    SetMapValue(batteryInfo, "chargingStatus", CreateStringValue(chargingStatus));
+    SetMapValue(batteryInfo, "batteryHealth", CreateStringValue("good"));
+    SetMapValue(batteryInfo, "batteryCapacity", CreateIntValue(0));
+    SetMapValue(batteryInfo, "batteryVoltage", CreateDoubleValue(0.0));
+    SetMapValue(batteryInfo, "batteryTemperature", CreateDoubleValue(0.0));
+    return batteryInfo;
+  } else {
+    // No battery (desktop) - return null
+    fl_value_unref(batteryInfo);
+    return nullptr;
+  }
+}
+
+// Get sensor info
+static FlValue* GetSensorInfo() {
+  FlValue* sensorInfo = CreateMapValue();
+  FlValue* sensors = fl_value_new_list();
+  
+  // Check for available sensors in /sys/bus/iio/devices
+  fl_value_append_take(sensors, CreateStringValue("accelerometer")); // If available
+  
+  SetMapValue(sensorInfo, "availableSensors", sensors);
+  return sensorInfo;
+}
+
+// Get network info
+static FlValue* GetNetworkInfo() {
+  FlValue* networkInfo = CreateMapValue();
+  
+  std::string ipAddress = GetIPAddress();
+  std::string macAddress = GetMACAddress();
+  
+  SetMapValue(networkInfo, "connectionType", CreateStringValue("ethernet"));
+  SetMapValue(networkInfo, "networkSpeed", CreateStringValue("Unknown"));
+  SetMapValue(networkInfo, "isConnected", CreateBoolValue(!ipAddress.empty()));
+  SetMapValue(networkInfo, "ipAddress", CreateStringValue(ipAddress));
+  SetMapValue(networkInfo, "macAddress", CreateStringValue(macAddress));
+  
+  return networkInfo;
+}
+
+// Called when a method call is received from Flutter.
+static void flutter_device_info_plus_plugin_handle_method_call(
+    FlutterDeviceInfoPlusPlugin* self,
+    FlMethodCall* method_call) {
+  g_autoptr(FlMethodResponse) response = nullptr;
+
+  const gchar* method = fl_method_call_get_name(method_call);
+
+  if (strcmp(method, "getDeviceInfo") == 0) {
+    FlValue* result = GetDeviceInfo();
+    response = FL_METHOD_RESPONSE(fl_method_success_response_new(result));
+    fl_value_unref(result);
+  } else if (strcmp(method, "getBatteryInfo") == 0) {
+    FlValue* result = GetBatteryInfo();
+    if (result != nullptr) {
+      response = FL_METHOD_RESPONSE(fl_method_success_response_new(result));
+      fl_value_unref(result);
+    } else {
+      response = FL_METHOD_RESPONSE(fl_method_success_response_new(nullptr));
+    }
+  } else if (strcmp(method, "getSensorInfo") == 0) {
+    FlValue* result = GetSensorInfo();
+    response = FL_METHOD_RESPONSE(fl_method_success_response_new(result));
+    fl_value_unref(result);
+  } else if (strcmp(method, "getNetworkInfo") == 0) {
+    FlValue* result = GetNetworkInfo();
+    response = FL_METHOD_RESPONSE(fl_method_success_response_new(result));
+    fl_value_unref(result);
+  } else {
+    response = FL_METHOD_RESPONSE(fl_method_not_implemented_response_new());
+  }
+
+  fl_method_call_respond(method_call, response, nullptr);
+}
+
+static void flutter_device_info_plus_plugin_dispose(GObject* object) {
+  G_OBJECT_CLASS(flutter_device_info_plus_plugin_parent_class)->dispose(object);
+}
+
+static void flutter_device_info_plus_plugin_class_init(FlutterDeviceInfoPlusPluginClass* klass) {
+  G_OBJECT_CLASS(klass)->dispose = flutter_device_info_plus_plugin_dispose;
+}
+
+static void flutter_device_info_plus_plugin_init(FlutterDeviceInfoPlusPlugin* self) {}
+
+static void method_call_cb(FlMethodChannel* channel, FlMethodCall* method_call,
+                           gpointer user_data) {
+  FlutterDeviceInfoPlusPlugin* plugin = FLUTTER_DEVICE_INFO_PLUS_PLUGIN(user_data);
+  flutter_device_info_plus_plugin_handle_method_call(plugin, method_call);
+}
+
+void flutter_device_info_plus_plugin_register_with_registrar(FlPluginRegistrar* registrar) {
+  FlutterDeviceInfoPlusPlugin* plugin = FLUTTER_DEVICE_INFO_PLUS_PLUGIN(
+      g_object_new(flutter_device_info_plus_plugin_get_type(), nullptr));
+
+  g_autoptr(FlStandardMethodCodec) codec = fl_standard_method_codec_new();
+  g_autoptr(FlMethodChannel) channel =
+      fl_method_channel_new(fl_plugin_registrar_get_messenger(registrar),
+                            "flutter_device_info_plus",
+                            FL_METHOD_CODEC(codec));
+  fl_method_channel_set_method_call_handler(channel, method_call_cb,
+                                            g_object_ref(plugin),
+                                            g_object_unref);
+
+  g_object_unref(plugin);
+}
