@@ -6,6 +6,7 @@ library;
 
 import 'dart:async';
 import 'dart:js_interop';
+import 'dart:math' as math;
 import 'package:flutter_web_plugins/flutter_web_plugins.dart';
 import 'package:web/web.dart' as web;
 
@@ -14,7 +15,10 @@ import 'src/platform_interface.dart';
 
 /// Web implementation of FlutterDeviceInfoPlus.
 class FlutterDeviceInfoPlusPlugin extends FlutterDeviceInfoPlusPlatform {
-  /// Registar the plugin with the Flutter engine
+  /// The default constructor for [FlutterDeviceInfoPlusPlugin].
+  FlutterDeviceInfoPlusPlugin();
+
+  /// Register the plugin with the Flutter engine
   static void registerWith(final Registrar registrar) {
     FlutterDeviceInfoPlusPlatform.instance = FlutterDeviceInfoPlusPlugin();
   }
@@ -45,7 +49,8 @@ class FlutterDeviceInfoPlusPlugin extends FlutterDeviceInfoPlusPlatform {
     final batteryInfo = await getBatteryInfo();
 
     return DeviceInformation(
-      deviceId: 'web-user', // Browsers do not expose a unique device ID for privacy reasons
+      deviceId: 'web-user',
+      // Browsers do not expose a unique device ID for privacy reasons
       deviceName: browserInfo['name'] ?? 'Web Browser',
       manufacturer: deviceInfo['manufacturer'] ?? 'Unknown',
       model: deviceInfo['model'] ?? browserInfo['name'] ?? 'Web Browser',
@@ -286,44 +291,62 @@ class FlutterDeviceInfoPlusPlugin extends FlutterDeviceInfoPlusPlatform {
 
       final completer = Completer<String>();
 
-      pc.onicecandidate = ((final JSObject event) {
-        final iceEvent = event as RTCPeerConnectionIceEvent;
-        final candidate = iceEvent.candidate;
-        if (candidate != null) {
+      try {
+        pc.onicecandidate = ((final JSObject event) {
+          final iceEvent = event as RTCPeerConnectionIceEvent;
+          final candidate = iceEvent.candidate;
+
+          // Per spec, a null candidate indicates ICE gathering completed.
+          if (candidate == null) {
+            if (!completer.isCompleted) {
+              completer.complete('unknown');
+            }
+            return;
+          }
+
           final candidateString = candidate.candidate;
-          if (candidateString != null) {
-            // Extract IP (IPv4) - look for x.x.x.x
-            final parts = candidateString.split(' ');
-            for (final part in parts) {
-              if (part.contains('.') && part.split('.').length == 4) {
-                // Simple verification it is likely an IP
-                if (part
-                    .split('.')
-                    .every((final p) => int.tryParse(p) != null)) {
-                  if (!completer.isCompleted) {
-                    completer.complete(part);
-                  }
-                  pc.onicecandidate = null;
-                  break;
+          if (candidateString == null) {
+            return;
+          }
+
+          // Extract IP (IPv4) - look for x.x.x.x
+          final parts = candidateString.split(' ');
+          for (final part in parts) {
+            if (part.contains('.') && part.split('.').length == 4) {
+              // Simple verification it is likely an IP
+              if (part.split('.').every((final p) => int.tryParse(p) != null)) {
+                if (!completer.isCompleted) {
+                  completer.complete(part);
                 }
+                break;
               }
             }
           }
-        }
-      }).toJS;
+        }).toJS;
 
-      final offer = await pc.createOffer().toDart;
-      await pc.setLocalDescription(offer).toDart;
+        final offer = await pc.createOffer().toDart;
+        await pc.setLocalDescription(offer).toDart;
 
-      // Wait for 500ms max
-      return await completer.future.timeout(const Duration(milliseconds: 500));
+        // Wait for 500ms max
+        return await completer.future.timeout(
+          const Duration(milliseconds: 500),
+        );
+      } finally {
+        pc
+          ..onicecandidate = null
+          ..close();
+      }
     } on Object catch (_) {
       return 'unknown';
     }
   }
 
   Map<String, String> _detectBrowser(final String userAgent) {
-    if (userAgent.contains('Chrome') && !userAgent.contains('Edg')) {
+    if (userAgent.contains('Edg')) {
+      return {'name': 'Edge', 'version': _extractVersion(userAgent, 'Edg/')};
+    } else if (userAgent.contains('Opera') || userAgent.contains('OPR')) {
+      return {'name': 'Opera', 'version': _extractVersion(userAgent, 'OPR/')};
+    } else if (userAgent.contains('Chrome')) {
       return {
         'name': 'Chrome',
         'version': _extractVersion(userAgent, 'Chrome/'),
@@ -338,15 +361,21 @@ class FlutterDeviceInfoPlusPlugin extends FlutterDeviceInfoPlusPlatform {
         'name': 'Safari',
         'version': _extractVersion(userAgent, 'Version/'),
       };
-    } else if (userAgent.contains('Edg')) {
-      return {'name': 'Edge', 'version': _extractVersion(userAgent, 'Edg/')};
-    } else if (userAgent.contains('Opera') || userAgent.contains('OPR')) {
-      return {'name': 'Opera', 'version': _extractVersion(userAgent, 'OPR/')};
     }
     return {'name': 'Unknown Browser', 'version': 'Unknown'};
   }
 
   String _detectOS(final String userAgent) {
+    // iPadOS user agents may include "Mac OS X", and Android UAs include
+    // "Linux"; check the mobile OSes first to avoid misclassification.
+    if (userAgent.contains('iOS') ||
+        userAgent.contains('iPhone') ||
+        userAgent.contains('iPad')) {
+      return 'iOS';
+    }
+    if (userAgent.contains('Android')) {
+      return 'Android';
+    }
     if (userAgent.contains('Windows')) {
       return 'Windows';
     }
@@ -355,14 +384,6 @@ class FlutterDeviceInfoPlusPlugin extends FlutterDeviceInfoPlusPlatform {
     }
     if (userAgent.contains('Linux')) {
       return 'Linux';
-    }
-    if (userAgent.contains('Android')) {
-      return 'Android';
-    }
-    if (userAgent.contains('iOS') ||
-        userAgent.contains('iPhone') ||
-        userAgent.contains('iPad')) {
-      return 'iOS';
     }
     return 'Unknown';
   }
@@ -547,7 +568,9 @@ class FlutterDeviceInfoPlusPlugin extends FlutterDeviceInfoPlusPlatform {
   ) {
     final widthInches = width / pixelRatio / 96.0;
     final heightInches = height / pixelRatio / 96.0;
-    return (widthInches * widthInches + heightInches * heightInches) / 2.0;
+    return math.sqrt(
+      (widthInches * widthInches) + (heightInches * heightInches),
+    );
   }
 
   bool _checkHdrSupport() => false;
@@ -565,65 +588,148 @@ class FlutterDeviceInfoPlusPlugin extends FlutterDeviceInfoPlusPlatform {
   }
 }
 
-extension type NavigatorWithConnection(web.Navigator navigator)
+/// Extension for [web.Navigator] to include network connection information.
+extension type NavigatorWithConnection(
+  /// The underlying [web.Navigator].
+  web.Navigator
+  navigator
+)
     implements web.Navigator {
+  /// Returns the current network connection information.
   external JSNetworkInformation? get connection;
 }
 
-extension type NavigatorWithUAData(web.Navigator navigator)
+/// Extension for [web.Navigator] to include User Agent Client Hints
+/// information.
+extension type NavigatorWithUAData(
+  /// The underlying [web.Navigator].
+  web.Navigator
+  navigator
+)
     implements web.Navigator {
+  /// Returns the User Agent Client Hints data.
   external UAData? get userAgentData;
 }
 
-extension type UAData(JSObject _) implements JSObject {
+/// JS interop for the NavigatorUAData object (Client Hints).
+extension type UAData(
+  /// The underlying JS object.
+  JSObject
+  _
+)
+    implements JSObject {
+  /// Returns high-entropy values for the user agent.
   external JSPromise<UADataValues> getHighEntropyValues(final JSObject hints);
 }
 
-extension type UADataValues(JSObject _) implements JSObject {
+/// JS interop for the high-entropy values returned by UAData.
+extension type UADataValues(
+  /// The underlying JS object.
+  JSObject
+  _
+)
+    implements JSObject {
+  /// The platform version.
   external String? get platformVersion;
+
+  /// The device architecture.
   external String? get architecture;
+
+  /// The device bitness.
   external String? get bitness;
+
+  /// The device model.
   external String? get model;
+
+  /// The list of browser brands and versions.
   external JSArray<UABrandVersion>? get fullVersionList;
 }
 
-extension type UABrandVersion(JSObject _) implements JSObject {
+/// JS interop for the browser brand and version information.
+extension type UABrandVersion(
+  /// The underlying JS object.
+  JSObject
+  _
+)
+    implements JSObject {
+  /// The brand name.
   external String get brand;
+
+  /// The version string.
   external String get version;
 }
 
 /// JS interop for the NetworkInformation object.
-extension type JSNetworkInformation(JSObject _) implements JSObject {
-  /// The effective type of the connection meaning one of 'slow-2g', '2g', '3g', or '4g'.
+extension type JSNetworkInformation(
+  /// The underlying JS object.
+  JSObject
+  _
+)
+    implements JSObject {
+  /// The effective type of the connection meaning one of 'slow-2g', '2g', '3g',
+  /// or '4g'.
   external String? get effectiveType;
 
-  /// The estimated effective round-trip time of the current connection, rounded to the nearest multiple of 25 milliseconds.
+  /// The estimated bandwidth of the current connection in megabits per second.
   external double? get downlink;
 
   /// The type of connection a device is using to communicate with the network.
   external String? get type;
 }
 
-extension type NavigatorWithMemory(web.Navigator navigator)
+/// Extension for [web.Navigator] to include device memory information.
+extension type NavigatorWithMemory(
+  /// The underlying [web.Navigator].
+  web.Navigator
+  navigator
+)
     implements web.Navigator {
+  /// Returns the approximate amount of device memory in gigabytes.
   external double? get deviceMemory;
 }
 
-extension type NavigatorWithStorage(web.Navigator navigator)
+/// Extension for [web.Navigator] to include storage manager information.
+extension type NavigatorWithStorage(
+  /// The underlying [web.Navigator].
+  web.Navigator
+  navigator
+)
     implements web.Navigator {
+  /// Returns the [StorageManager] for the current context.
   external StorageManager get storage;
 }
 
-extension type StorageManager(JSObject _) implements JSObject {
+/// JS interop for the StorageManager object.
+extension type StorageManager(
+  /// The underlying JS object.
+  JSObject
+  _
+)
+    implements JSObject {
+  /// Returns an estimate of storage quota and usage.
   external JSPromise<StorageEstimate> estimate();
 }
 
-extension type StorageEstimate(JSObject _) implements JSObject {
+/// JS interop for the StorageEstimate object.
+extension type StorageEstimate(
+  /// The underlying JS object.
+  JSObject
+  _
+)
+    implements JSObject {
+  /// The estimated storage quota in bytes.
   external int? get quota;
+
+  /// The estimated storage usage in bytes.
   external int? get usage;
 }
 
-extension type NavigatorWithBattery(web.Navigator navigator)
+/// Extension for [web.Navigator] to include battery information.
+extension type NavigatorWithBattery(
+  /// The underlying [web.Navigator].
+  web.Navigator
+  navigator
+)
     implements web.Navigator {
   /// Returns a [JSPromise] that resolves with a [BatteryManager] object.
   ///
@@ -632,7 +738,12 @@ extension type NavigatorWithBattery(web.Navigator navigator)
 }
 
 /// JS interop for the BatteryManager object from the Battery Status API.
-extension type BatteryManager(JSObject _) implements JSObject {
+extension type BatteryManager(
+  /// The underlying JS object.
+  JSObject
+  _
+)
+    implements JSObject {
   /// Whether the battery is currently being charged.
   external bool get charging;
 
@@ -647,23 +758,63 @@ extension type BatteryManager(JSObject _) implements JSObject {
 }
 
 // WebRTC Extensions
-extension type RTCPeerConnection._(JSObject _) implements JSObject {
+/// JS interop for the RTCPeerConnection object.
+extension type RTCPeerConnection._(
+  /// The underlying JS object.
+  JSObject
+  _
+)
+    implements JSObject {
+  /// Creates a new RTCPeerConnection instance.
   external factory RTCPeerConnection([final JSAny? configuration]);
+
+  /// Creates an offer for the connection.
   external JSPromise<RTCSessionDescription> createOffer([final JSAny? options]);
+
+  /// Sets the local description for the connection.
   external JSPromise<JSAny?> setLocalDescription(
     final RTCSessionDescription description,
   );
+
+  /// Creates a data channel for the connection.
   external JSObject createDataChannel(final String label);
+
+  /// Closes the peer connection and releases any associated resources.
+  external void close();
+
+  /// Callback for ICE candidate gathering.
   external JSFunction? get onicecandidate;
+
+  /// Sets the callback for ICE candidate gathering.
   external set onicecandidate(final JSFunction? callback);
 }
 
-extension type RTCSessionDescription(JSObject _) implements JSObject {}
+/// JS interop for the RTCSessionDescription object.
+extension type RTCSessionDescription(
+  /// The underlying JS object.
+  JSObject
+  _
+)
+    implements JSObject {}
 
-extension type RTCIceCandidate(JSObject _) implements JSObject {
+/// JS interop for the RTCIceCandidate object.
+extension type RTCIceCandidate(
+  /// The underlying JS object.
+  JSObject
+  _
+)
+    implements JSObject {
+  /// The candidate string.
   external String? get candidate;
 }
 
-extension type RTCPeerConnectionIceEvent(JSObject _) implements JSObject {
+/// JS interop for the RTCPeerConnectionIceEvent object.
+extension type RTCPeerConnectionIceEvent(
+  /// The underlying JS object.
+  JSObject
+  _
+)
+    implements JSObject {
+  /// The ICE candidate associated with the event.
   external RTCIceCandidate? get candidate;
 }

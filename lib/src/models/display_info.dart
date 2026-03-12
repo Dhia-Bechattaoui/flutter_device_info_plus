@@ -39,7 +39,7 @@ class DisplayInfo {
   final bool isHdr;
 
   /// Gets the aspect ratio of the screen.
-  double get aspectRatio => screenWidth / screenHeight;
+  double get aspectRatio => screenHeight == 0 ? 0 : screenWidth / screenHeight;
 
   /// Gets the total number of pixels.
   int get totalPixels => screenWidth * screenHeight;

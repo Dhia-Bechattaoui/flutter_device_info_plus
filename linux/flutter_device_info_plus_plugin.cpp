@@ -398,7 +398,10 @@ static FlValue* GetNetworkInfo() {
   
   SetMapValue(networkInfo, "connectionType", CreateStringValue("ethernet"));
   SetMapValue(networkInfo, "networkSpeed", CreateStringValue("Unknown"));
-  SetMapValue(networkInfo, "isConnected", CreateBoolValue(!ipAddress.empty()));
+  SetMapValue(
+      networkInfo,
+      "isConnected",
+      CreateBoolValue(!ipAddress.empty() && ipAddress != "unknown"));
   SetMapValue(networkInfo, "ipAddress", CreateStringValue(ipAddress));
   SetMapValue(networkInfo, "macAddress", CreateStringValue(macAddress));
   

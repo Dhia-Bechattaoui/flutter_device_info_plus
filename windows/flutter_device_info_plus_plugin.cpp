@@ -201,7 +201,8 @@ flutter::EncodableMap FlutterDeviceInfoPlusPlugin::GetNetworkInfo() {
   
   networkInfo[flutter::EncodableValue("connectionType")] = flutter::EncodableValue("ethernet");
   networkInfo[flutter::EncodableValue("networkSpeed")] = flutter::EncodableValue("Unknown");
-  networkInfo[flutter::EncodableValue("isConnected")] = flutter::EncodableValue(!ipAddress.empty());
+  networkInfo[flutter::EncodableValue("isConnected")] = flutter::EncodableValue(
+      !ipAddress.empty() && ipAddress != "unknown" && ipAddress != "0.0.0.0");
   networkInfo[flutter::EncodableValue("ipAddress")] = flutter::EncodableValue(ipAddress);
   networkInfo[flutter::EncodableValue("macAddress")] = flutter::EncodableValue(macAddress);
   

@@ -34,7 +34,8 @@ class DeviceInformation {
     this.batteryInfo,
   });
 
-  /// A unique identifier for the device (e.g. Android ID on Android, identifierForVendor on iOS).
+  /// A unique identifier for the device (e.g. Android ID on Android,
+  /// identifierForVendor on iOS).
   final String deviceId;
 
   /// The human-readable name of the device.

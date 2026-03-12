@@ -65,12 +65,8 @@ class NetworkInfo {
   }
 
   @override
-  int get hashCode => Object.hash(
-    connectionType,
-    networkSpeed,
-    isConnected,
-    ipAddress,
-  );
+  int get hashCode =>
+      Object.hash(connectionType, networkSpeed, isConnected, ipAddress);
 
   @override
   String toString() =>
