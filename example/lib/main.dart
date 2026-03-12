@@ -63,6 +63,7 @@ class _DeviceInfoScreenState extends State<DeviceInfoScreen> {
       debugPrint('Platform: $platform');
 
       debugPrint('--- Device Info ---');
+      debugPrint('Device ID: ${deviceInfo.deviceId}');
       debugPrint('Name: ${deviceInfo.deviceName}');
       debugPrint('Manufacturer: ${deviceInfo.manufacturer}');
       debugPrint('Model: ${deviceInfo.model}');
@@ -117,7 +118,6 @@ class _DeviceInfoScreenState extends State<DeviceInfoScreen> {
       debugPrint('Speed: ${networkInfo.networkSpeed}');
       debugPrint('Connected: ${networkInfo.isConnected}');
       debugPrint('IP: ${networkInfo.ipAddress}');
-      debugPrint('MAC: ${networkInfo.macAddress}');
 
       debugPrint('========== DEVICE INFO DEBUG END ==========');
 
@@ -202,6 +202,7 @@ class _DeviceInfoScreenState extends State<DeviceInfoScreen> {
             'Device Information (getDeviceInfo)',
             Icons.phone_android,
             [
+              _InfoItem('Device ID', _deviceInformation!.deviceId),
               _InfoItem('Name', _deviceInformation!.deviceName),
               _InfoItem('Manufacturer', _deviceInformation!.manufacturer),
               _InfoItem('Model', _deviceInformation!.model),
@@ -401,7 +402,6 @@ class _DeviceInfoScreenState extends State<DeviceInfoScreen> {
                     _networkInfo!.isConnected ? 'Yes' : 'No',
                   ),
                   _InfoItem('IP Address', _networkInfo!.ipAddress),
-                  _InfoItem('MAC Address', _networkInfo!.macAddress),
                   _InfoItem(
                     'WiFi',
                     _networkInfo!.connectionType == 'wifi' ? 'Yes' : 'No',

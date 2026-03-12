@@ -63,6 +63,7 @@ flutter::EncodableMap FlutterDeviceInfoPlusPlugin::GetDeviceInfo() {
   char computerName[MAX_COMPUTERNAME_LENGTH + 1];
   DWORD size = sizeof(computerName);
   GetComputerNameA(computerName, &size);
+  deviceInfo[flutter::EncodableValue("deviceId")] = flutter::EncodableValue(GetDeviceId());
   deviceInfo[flutter::EncodableValue("deviceName")] = flutter::EncodableValue(std::string(computerName));
   
   // Use RtlGetVersion instead of deprecated GetVersionEx
@@ -377,6 +378,16 @@ std::string FlutterDeviceInfoPlusPlugin::GetMACAddress() {
       }
       pAdapterInfo = pAdapterInfo->Next;
     } while (pAdapterInfo);
+  }
+  return "unknown";
+}
+
+std::string FlutterDeviceInfoPlusPlugin::GetDeviceId() {
+  DWORD volumeSerialNumber;
+  if (GetVolumeInformationA("C:\\", NULL, 0, &volumeSerialNumber, NULL, NULL, NULL, 0)) {
+    char buffer[32];
+    sprintf_s(buffer, "%08X", volumeSerialNumber);
+    return std::string(buffer);
   }
   return "unknown";
 }

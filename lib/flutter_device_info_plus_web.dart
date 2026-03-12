@@ -45,6 +45,7 @@ class FlutterDeviceInfoPlusPlugin extends FlutterDeviceInfoPlusPlatform {
     final batteryInfo = await getBatteryInfo();
 
     return DeviceInformation(
+      deviceId: 'web-user', // Browsers do not expose a unique device ID for privacy reasons
       deviceName: browserInfo['name'] ?? 'Web Browser',
       manufacturer: deviceInfo['manufacturer'] ?? 'Unknown',
       model: deviceInfo['model'] ?? browserInfo['name'] ?? 'Web Browser',
@@ -276,9 +277,6 @@ class FlutterDeviceInfoPlusPlugin extends FlutterDeviceInfoPlusPlatform {
       networkSpeed: networkSpeed,
       isConnected: isConnected,
       ipAddress: await _getLocalIpAddress(),
-      // MAC address is strictly blocked by browsers for security
-      // (to prevent tracking). It is impossible to retrieve via JS.
-      macAddress: 'Not Available',
     );
   }
 

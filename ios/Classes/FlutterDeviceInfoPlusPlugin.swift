@@ -51,7 +51,10 @@ public class FlutterDeviceInfoPlusPlugin: NSObject, FlutterPlugin {
     // Get security info
     var securityInfo = getSecurityInfo()
     
+    let deviceId = UIDevice.current.identifierForVendor?.uuidString ?? "Unknown"
+    
     return [
+      "deviceId": deviceId,
       "deviceName": device.name,
       "manufacturer": "Apple",
       "model": getDeviceModel(),

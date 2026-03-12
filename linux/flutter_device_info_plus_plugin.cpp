@@ -259,9 +259,22 @@ static std::string GetMACAddress() {
   return macAddress;
 }
 
+// Get device ID
+static std::string GetDeviceId() {
+  std::string machineId = ReadFile("/etc/machine-id");
+  if (!machineId.empty()) {
+    // remove new lines
+    machineId.erase(machineId.find_last_not_of(" \n\r\t") + 1);
+    return machineId;
+  }
+  return "unknown";
+}
+
 // Get device info
 static FlValue* GetDeviceInfo() {
   FlValue* deviceInfo = CreateMapValue();
+  
+  SetMapValue(deviceInfo, "deviceId", CreateStringValue(GetDeviceId()));
   
   // Get hostname
   char hostname[256];

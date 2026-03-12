@@ -50,6 +50,7 @@ class FlutterDeviceInfoPlus {
       final networkInfo = await getNetworkInfo();
 
       return DeviceInformation(
+        deviceId: data['deviceId'] as String? ?? 'Unknown',
         deviceName: data['deviceName'] as String? ?? 'Unknown',
         manufacturer: data['manufacturer'] as String? ?? 'Unknown',
         model: data['model'] as String? ?? 'Unknown',
@@ -181,7 +182,6 @@ class FlutterDeviceInfoPlus {
         networkSpeed: data['networkSpeed'] as String? ?? 'Unknown',
         isConnected: data['isConnected'] as bool? ?? false,
         ipAddress: data['ipAddress'] as String? ?? 'unknown',
-        macAddress: data['macAddress'] as String? ?? 'unknown',
       );
     } catch (e) {
       throw DeviceInfoException('Failed to get network info: $e');

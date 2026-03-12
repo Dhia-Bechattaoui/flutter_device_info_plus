@@ -58,6 +58,7 @@ public class FlutterDeviceInfoPlusPlugin: NSObject, FlutterPlugin {
     let securityInfo = getSecurityInfo()
     
     return [
+      "deviceId": getDeviceId(),
       "deviceName": Host.current().localizedName ?? "Mac",
       "manufacturer": "Apple",
       "model": getModelIdentifier(),
@@ -71,6 +72,18 @@ public class FlutterDeviceInfoPlusPlugin: NSObject, FlutterPlugin {
       "displayInfo": displayInfo,
       "securityInfo": securityInfo
     ]
+  }
+  
+  private func getDeviceId() -> String {
+    let platformExpert = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("IOPlatformExpertDevice"))
+    if platformExpert != 0 {
+      let serialNumberAsCFString = IORegistryEntryCreateCFProperty(platformExpert, kIOPlatformUUIDKey as CFString, kCFAllocatorDefault, 0)
+      IOObjectRelease(platformExpert)
+      if let serialNumber = serialNumberAsCFString?.takeUnretainedValue() as? String {
+        return serialNumber
+      }
+    }
+    return "Unknown"
   }
   
   private func getModelIdentifier() -> String {

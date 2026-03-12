@@ -48,7 +48,7 @@ Add this to your package's `pubspec.yaml` file:
 
 ```yaml
 dependencies:
-  flutter_device_info_plus: ^0.2.1
+  flutter_device_info_plus: ^0.3.0
 ```
 
 Then run:
@@ -221,6 +221,7 @@ The main class containing all device information:
 
 ```dart
 class DeviceInformation {
+  final String deviceId;
   final String deviceName;
   final String manufacturer;
   final String model;

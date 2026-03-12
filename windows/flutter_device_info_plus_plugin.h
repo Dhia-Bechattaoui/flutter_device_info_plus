@@ -57,6 +57,7 @@ class FlutterDeviceInfoPlusPlugin : public flutter::Plugin {
   // Network information methods
   std::string GetIPAddress();
   std::string GetMACAddress();
+  std::string GetDeviceId();
 };
 
 }  // namespace flutter_device_info_plus

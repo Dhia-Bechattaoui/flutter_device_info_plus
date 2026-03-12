@@ -16,6 +16,7 @@ import 'sensor_info.dart';
 class DeviceInformation {
   /// Creates a new [DeviceInformation] instance.
   const DeviceInformation({
+    required this.deviceId,
     required this.deviceName,
     required this.manufacturer,
     required this.model,
@@ -32,6 +33,9 @@ class DeviceInformation {
     required this.securityInfo,
     this.batteryInfo,
   });
+
+  /// A unique identifier for the device (e.g. Android ID on Android, identifierForVendor on iOS).
+  final String deviceId;
 
   /// The human-readable name of the device.
   final String deviceName;
@@ -80,6 +84,7 @@ class DeviceInformation {
 
   /// Creates a copy of this [DeviceInformation] with the given fields replaced.
   DeviceInformation copyWith({
+    final String? deviceId,
     final String? deviceName,
     final String? manufacturer,
     final String? model,
@@ -96,6 +101,7 @@ class DeviceInformation {
     final NetworkInfo? networkInfo,
     final SecurityInfo? securityInfo,
   }) => DeviceInformation(
+    deviceId: deviceId ?? this.deviceId,
     deviceName: deviceName ?? this.deviceName,
     manufacturer: manufacturer ?? this.manufacturer,
     model: model ?? this.model,
@@ -120,6 +126,7 @@ class DeviceInformation {
     }
 
     return other is DeviceInformation &&
+        other.deviceId == deviceId &&
         other.deviceName == deviceName &&
         other.manufacturer == manufacturer &&
         other.model == model &&
@@ -139,6 +146,7 @@ class DeviceInformation {
 
   @override
   int get hashCode => Object.hash(
+    deviceId,
     deviceName,
     manufacturer,
     model,
@@ -159,6 +167,7 @@ class DeviceInformation {
   @override
   String toString() =>
       'DeviceInformation('
+      'deviceId: $deviceId, '
       'deviceName: $deviceName, '
       'manufacturer: $manufacturer, '
       'model: $model, '

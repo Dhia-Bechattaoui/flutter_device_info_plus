@@ -94,7 +94,10 @@ class FlutterDeviceInfoPlusPlugin : FlutterPlugin, MethodChannel.MethodCallHandl
         // Get CPU info
         val cpuInfo = getCpuInfo()
 
+        val deviceId = Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID) ?: "Unknown"
+
         return mapOf(
+            "deviceId" to deviceId,
             "deviceName" to Build.MODEL,
             "manufacturer" to Build.MANUFACTURER,
             "model" to Build.MODEL,
@@ -398,23 +401,60 @@ class FlutterDeviceInfoPlusPlugin : FlutterPlugin, MethodChannel.MethodCallHandl
         // Get MAC address (requires location permission on Android 6.0+)
         var macAddress = "unknown"
         try {
-            if (connectionType == "wifi") {
-                val wifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
-                val wifiInfo: WifiInfo? = wifiManager?.connectionInfo
-                macAddress = wifiInfo?.macAddress ?: "unknown"
-            } else {
+            // First try WifiManager
+            val wifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
+            val wifiInfo: WifiInfo? = wifiManager?.connectionInfo
+            val wifiMac = wifiInfo?.macAddress
+            if (wifiMac != null && wifiMac != "02:00:00:00:00:00" && wifiMac != "unknown") {
+                macAddress = wifiMac.uppercase(Locale.ROOT)
+            }
+        } catch (e: Exception) {
+            // Ignore
+        }
+
+        // Second try NetworkInterface
+        if (macAddress == "unknown") {
+            try {
                 val interfaces = NetworkInterface.getNetworkInterfaces()
                 while (interfaces.hasMoreElements()) {
                     val networkInterface = interfaces.nextElement()
+                    val name = networkInterface.name ?: ""
+                    if (name.equals("lo", ignoreCase = true) || name.contains("dummy")) continue
+                    
                     val hardwareAddress = networkInterface.hardwareAddress
                     if (hardwareAddress != null && hardwareAddress.isNotEmpty()) {
-                        macAddress = hardwareAddress.joinToString(":") { "%02X".format(it) }
-                        break
+                        val mac = hardwareAddress.joinToString(":") { "%02X".format(it) }
+                        if (mac != "02:00:00:00:00:00" && mac != "unknown") {
+                            macAddress = mac
+                            // Prefer wlan0 or eth0
+                            if (name.equals("wlan0", ignoreCase = true) || name.equals("eth0", ignoreCase = true)) {
+                                break
+                            }
+                        }
                     }
                 }
+            } catch (e: Exception) {
+                // Ignore
             }
-        } catch (e: Exception) {
-            // Ignore - may require permissions
+        }
+        
+        // Third try reading from sysfs for wlan0 or eth0
+        if (macAddress == "unknown") {
+            try {
+                val paths = arrayOf("/sys/class/net/wlan0/address", "/sys/class/net/eth0/address")
+                for (path in paths) {
+                    val file = File(path)
+                    if (file.exists() && file.canRead()) {
+                        val mac = file.readText().trim().uppercase(Locale.ROOT)
+                        if (mac.isNotEmpty() && mac != "02:00:00:00:00:00" && mac != "UNKNOWN") {
+                            macAddress = mac
+                            break
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                // Ignore
+            }
         }
 
         // Get network speed (approximate)

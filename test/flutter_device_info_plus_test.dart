@@ -98,6 +98,7 @@ void main() {
   group('DeviceInformation', () {
     test('should create valid instance with all required fields', () {
       const deviceInfo = DeviceInformation(
+        deviceId: 'test_device_id',
         deviceName: 'Test Device',
         manufacturer: 'Test Manufacturer',
         model: 'Test Model',
@@ -136,7 +137,6 @@ void main() {
           networkSpeed: '100 Mbps',
           isConnected: true,
           ipAddress: '192.168.1.1',
-          macAddress: '00:11:22:33:44:55',
         ),
         securityInfo: SecurityInfo(
           isDeviceSecure: true,
@@ -161,6 +161,7 @@ void main() {
 
     test('should support copyWith method', () {
       const originalInfo = DeviceInformation(
+        deviceId: 'test_device_id',
         deviceName: 'Original Device',
         manufacturer: 'Original Manufacturer',
         model: 'Original Model',
@@ -199,7 +200,6 @@ void main() {
           networkSpeed: '100 Mbps',
           isConnected: true,
           ipAddress: '192.168.1.1',
-          macAddress: '00:11:22:33:44:55',
         ),
         securityInfo: SecurityInfo(
           isDeviceSecure: true,
@@ -223,6 +223,7 @@ void main() {
 
     test('should have proper equality comparison', () {
       const info1 = DeviceInformation(
+        deviceId: 'test_device_id',
         deviceName: 'Test Device',
         manufacturer: 'Test Manufacturer',
         model: 'Test Model',
@@ -261,7 +262,6 @@ void main() {
           networkSpeed: '100 Mbps',
           isConnected: true,
           ipAddress: '192.168.1.1',
-          macAddress: '00:11:22:33:44:55',
         ),
         securityInfo: SecurityInfo(
           isDeviceSecure: true,
@@ -273,6 +273,7 @@ void main() {
       );
 
       const info2 = DeviceInformation(
+        deviceId: 'test_device_id',
         deviceName: 'Test Device',
         manufacturer: 'Test Manufacturer',
         model: 'Test Model',
@@ -311,7 +312,6 @@ void main() {
           networkSpeed: '100 Mbps',
           isConnected: true,
           ipAddress: '192.168.1.1',
-          macAddress: '00:11:22:33:44:55',
         ),
         securityInfo: SecurityInfo(
           isDeviceSecure: true,
@@ -419,7 +419,6 @@ void main() {
         networkSpeed: '100 Mbps',
         isConnected: true,
         ipAddress: '192.168.1.100',
-        macAddress: '00:11:22:33:44:55',
       );
 
       expect(network.isWifiConnected, true);
