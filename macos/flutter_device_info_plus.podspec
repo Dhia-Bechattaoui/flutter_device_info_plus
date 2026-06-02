@@ -13,7 +13,7 @@ Enhanced device information with detailed hardware specs and capabilities. Get c
   s.license          = { :file => '../LICENSE' }
   s.author           = { 'Flutter Team' => 'flutter-dev@googlegroups.com' }
   s.source           = { :path => '.' }
-  s.source_files = 'Classes/**/*'
+  s.source_files = 'flutter_device_info_plus/Sources/flutter_device_info_plus/**/*'
   s.dependency 'FlutterMacOS'
   s.platform = :osx, '10.14'
   s.pod_target_xcconfig = { 'DEFINES_MODULE' => 'YES' }

@@ -75,7 +75,13 @@ public class FlutterDeviceInfoPlusPlugin: NSObject, FlutterPlugin {
   }
   
   private func getDeviceId() -> String {
-    let platformExpert = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("IOPlatformExpertDevice"))
+    let port: mach_port_t
+    if #available(macOS 12.0, *) {
+      port = kIOMainPortDefault
+    } else {
+      port = kIOMasterPortDefault
+    }
+    let platformExpert = IOServiceGetMatchingService(port, IOServiceMatching("IOPlatformExpertDevice"))
     if platformExpert != 0 {
       let serialNumberAsCFString = IORegistryEntryCreateCFProperty(platformExpert, kIOPlatformUUIDKey as CFString, kCFAllocatorDefault, 0)
       IOObjectRelease(platformExpert)
@@ -121,7 +127,13 @@ public class FlutterDeviceInfoPlusPlugin: NSObject, FlutterPlugin {
     var features: [String] = []
     
     // Try to get CPU info from IOKit
-    let service = IOServiceGetMatchingService(kIOMasterPortDefault, IOServiceMatching("IOPlatformExpertDevice"))
+    let port: mach_port_t
+    if #available(macOS 12.0, *) {
+      port = kIOMainPortDefault
+    } else {
+      port = kIOMasterPortDefault
+    }
+    let service = IOServiceGetMatchingService(port, IOServiceMatching("IOPlatformExpertDevice"))
     if service != 0 {
       if let modelData = IORegistryEntryCreateCFProperty(service, "model" as CFString, kCFAllocatorDefault, 0)?.takeRetainedValue() as? Data {
         if let modelString = String(data: modelData, encoding: .utf8) {
