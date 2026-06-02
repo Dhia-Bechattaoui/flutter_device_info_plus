@@ -19,7 +19,7 @@ class FlutterDeviceInfoPlusPlugin extends FlutterDeviceInfoPlusPlatform {
   FlutterDeviceInfoPlusPlugin();
 
   /// Register the plugin with the Flutter engine
-  static void registerWith(final Registrar registrar) {
+  static void registerWith(Registrar registrar) {
     FlutterDeviceInfoPlusPlatform.instance = FlutterDeviceInfoPlusPlugin();
   }
 
