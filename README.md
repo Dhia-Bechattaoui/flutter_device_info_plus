@@ -62,6 +62,11 @@ flutter pub get
 - **Dart SDK**: >=3.8.0
 - **Flutter**: >=3.32.0
 
+> [!IMPORTANT]
+> This plugin's web implementation uses modern JS interop APIs (`dart:js_interop`).
+> If your app uses an older Flutter/Dart version, you may see build errors related to `js_interop`.
+> Upgrade your app to **Flutter >=3.32.0** and **Dart >=3.8.0**.
+
 ## Usage
 
 ### Basic Usage
