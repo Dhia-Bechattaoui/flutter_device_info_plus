@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-06-05
+
+### Added
+- **Linux Support** (Thanks to @amarantex64): Added Linux platform device info retrieval and app compilation support.
+- **Windows Support** (Thanks to @amarantex64): Added Windows runner support with DPI awareness and console output.
+
+### Fixed
+- **Windows**: Corrected network and system version information retrieval.
+- **Linux**: Corrected network and system version information, as well as distribution name (tested on Ubuntu and Fedora).
+- **Android**: Updated to use the custom device name set by the user.
+- **Web**: Updated security info to check for HTTPS protocol and updated dependencies for improved web support.
+
 ## [0.3.3] - 2026-06-04
 
 ### Fixed
@@ -365,7 +377,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ✅ macOS (macOS 10.14+)
 - ✅ Linux (Ubuntu 18.04+)
 
-[Unreleased]: https://github.com/Dhia-Bechattaoui/flutter_device_info_plus/compare/v0.3.3...HEAD
+[Unreleased]: https://github.com/Dhia-Bechattaoui/flutter_device_info_plus/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/Dhia-Bechattaoui/flutter_device_info_plus/compare/v0.3.3...v0.4.0
 [0.3.3]: https://github.com/Dhia-Bechattaoui/flutter_device_info_plus/compare/v0.3.2...v0.3.3
 [0.3.2]: https://github.com/Dhia-Bechattaoui/flutter_device_info_plus/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/Dhia-Bechattaoui/flutter_device_info_plus/compare/v0.3.0...v0.3.1

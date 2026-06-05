@@ -12,13 +12,10 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) => MaterialApp(
-        title: 'Device Info Plus Example',
-        theme: ThemeData(
-          primarySwatch: Colors.blue,
-          useMaterial3: true,
-        ),
-        home: const DeviceInfoScreen(),
-      );
+    title: 'Device Info Plus Example',
+    theme: ThemeData(primarySwatch: Colors.blue, useMaterial3: true),
+    home: const DeviceInfoScreen(),
+  );
 }
 
 /// Screen displaying all device information features.
@@ -139,18 +136,18 @@ class _DeviceInfoScreenState extends State<DeviceInfoScreen> {
 
   @override
   Widget build(final BuildContext context) => Scaffold(
-        appBar: AppBar(
-          title: const Text('Device Info Plus - All Features'),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.refresh),
-              onPressed: _loadAllInfo,
-              tooltip: 'Refresh',
-            ),
-          ],
+    appBar: AppBar(
+      title: const Text('Device Info Plus - All Features'),
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.refresh),
+          onPressed: _loadAllInfo,
+          tooltip: 'Refresh',
         ),
-        body: _buildBody(),
-      );
+      ],
+    ),
+    body: _buildBody(),
+  );
 
   Widget _buildBody() {
     if (_isLoading) {
@@ -175,10 +172,7 @@ class _DeviceInfoScreenState extends State<DeviceInfoScreen> {
             const SizedBox(height: 16),
             Text('Error: $_error', textAlign: TextAlign.center),
             const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _loadAllInfo,
-              child: const Text('Retry'),
-            ),
+            ElevatedButton(onPressed: _loadAllInfo, child: const Text('Retry')),
           ],
         ),
       );
@@ -188,13 +182,9 @@ class _DeviceInfoScreenState extends State<DeviceInfoScreen> {
       padding: const EdgeInsets.all(16),
       children: [
         // Platform Detection Feature
-        _buildInfoCard(
-          'Platform Detection',
-          Icons.devices,
-          [
-            _InfoItem('Current Platform', _currentPlatform ?? 'Unknown'),
-          ],
-        ),
+        _buildInfoCard('Platform Detection', Icons.devices, [
+          _InfoItem('Current Platform', _currentPlatform ?? 'Unknown'),
+        ]),
 
         // getDeviceInfo() - Main Method
         if (_deviceInformation != null) ...[
@@ -209,44 +199,33 @@ class _DeviceInfoScreenState extends State<DeviceInfoScreen> {
               _InfoItem('Brand', _deviceInformation!.brand),
             ],
           ),
-          _buildInfoCard(
-            'System Information',
-            Icons.computer,
-            [
-              _InfoItem('OS', _deviceInformation!.operatingSystem),
-              _InfoItem('Version', _deviceInformation!.systemVersion),
-              _InfoItem('Build', _deviceInformation!.buildNumber),
-              _InfoItem('Kernel', _deviceInformation!.kernelVersion),
-            ],
-          ),
-          _buildInfoCard(
-            'Processor Information',
-            Icons.memory,
-            [
-              _InfoItem(
-                'Architecture',
-                _deviceInformation!.processorInfo.architecture,
-              ),
-              _InfoItem(
-                'Cores',
-                '${_deviceInformation!.processorInfo.coreCount}',
-              ),
-              _InfoItem(
-                'Max Frequency',
-                _deviceInformation!.processorInfo.maxFrequency > 0
-                    ? '${_deviceInformation!.processorInfo.maxFrequency} MHz'
-                    : 'Not Available (Web Security)',
-              ),
-              _InfoItem(
-                'Name',
-                _deviceInformation!.processorInfo.processorName,
-              ),
-              _InfoItem(
-                'Features',
-                _deviceInformation!.processorInfo.features.join(', '),
-              ),
-            ],
-          ),
+          _buildInfoCard('System Information', Icons.computer, [
+            _InfoItem('OS', _deviceInformation!.operatingSystem),
+            _InfoItem('Version', _deviceInformation!.systemVersion),
+            _InfoItem('Build', _deviceInformation!.buildNumber),
+            _InfoItem('Kernel', _deviceInformation!.kernelVersion),
+          ]),
+          _buildInfoCard('Processor Information', Icons.memory, [
+            _InfoItem(
+              'Architecture',
+              _deviceInformation!.processorInfo.architecture,
+            ),
+            _InfoItem(
+              'Cores',
+              '${_deviceInformation!.processorInfo.coreCount}',
+            ),
+            _InfoItem(
+              'Max Frequency',
+              _deviceInformation!.processorInfo.maxFrequency > 0
+                  ? '${_deviceInformation!.processorInfo.maxFrequency} MHz'
+                  : 'Not Available (Web Security)',
+            ),
+            _InfoItem('Name', _deviceInformation!.processorInfo.processorName),
+            _InfoItem(
+              'Features',
+              _deviceInformation!.processorInfo.features.join(', '),
+            ),
+          ]),
           _buildInfoCard(
             'Memory Information',
             Icons.storage,
@@ -257,46 +236,42 @@ class _DeviceInfoScreenState extends State<DeviceInfoScreen> {
             Icons.screen_lock_portrait,
             _buildDisplayItems(_deviceInformation!),
           ),
-          _buildInfoCard(
-            'Security Information',
-            Icons.security,
-            [
-              _InfoItem(
-                'Device Secure',
-                _deviceInformation!.securityInfo.isDeviceSecure ? 'Yes' : 'No',
-              ),
-              _InfoItem(
-                'Fingerprint',
-                _deviceInformation!.securityInfo.hasFingerprint
-                    ? 'Available'
-                    : 'Not Available',
-              ),
-              _InfoItem(
-                'Face Unlock',
-                _deviceInformation!.securityInfo.hasFaceUnlock
-                    ? 'Available'
-                    : 'Not Available',
-              ),
-              _InfoItem(
-                'Screen Lock',
-                _deviceInformation!.securityInfo.screenLockEnabled
-                    ? 'Enabled'
-                    : 'Disabled',
-              ),
-              _InfoItem(
-                'Encryption',
-                _deviceInformation!.securityInfo.encryptionStatus,
-              ),
-              _InfoItem(
-                'Security Score',
-                '${_deviceInformation!.securityInfo.securityScore}/100',
-              ),
-              _InfoItem(
-                'Security Level',
-                _deviceInformation!.securityInfo.securityLevel,
-              ),
-            ],
-          ),
+          _buildInfoCard('Security Information', Icons.security, [
+            _InfoItem(
+              'Device Secure',
+              _deviceInformation!.securityInfo.isDeviceSecure ? 'Yes' : 'No',
+            ),
+            _InfoItem(
+              'Fingerprint',
+              _deviceInformation!.securityInfo.hasFingerprint
+                  ? 'Available'
+                  : 'Not Available',
+            ),
+            _InfoItem(
+              'Face Unlock',
+              _deviceInformation!.securityInfo.hasFaceUnlock
+                  ? 'Available'
+                  : 'Not Available',
+            ),
+            _InfoItem(
+              'Screen Lock',
+              _deviceInformation!.securityInfo.screenLockEnabled
+                  ? 'Enabled'
+                  : 'Disabled',
+            ),
+            _InfoItem(
+              'Encryption',
+              _deviceInformation!.securityInfo.encryptionStatus,
+            ),
+            _InfoItem(
+              'Security Score',
+              '${_deviceInformation!.securityInfo.securityScore}/100',
+            ),
+            _InfoItem(
+              'Security Level',
+              _deviceInformation!.securityInfo.securityLevel,
+            ),
+          ]),
         ],
 
         // getBatteryInfo() - Individual Method
@@ -384,9 +359,7 @@ class _DeviceInfoScreenState extends State<DeviceInfoScreen> {
                         .join(', '),
                   ),
                 ]
-              : [
-                  const _InfoItem('Status', 'Loading...'),
-                ],
+              : [const _InfoItem('Status', 'Loading...')],
         ),
 
         // getNetworkInfo() - Individual Method
@@ -415,9 +388,7 @@ class _DeviceInfoScreenState extends State<DeviceInfoScreen> {
                     _networkInfo!.isEthernetConnected ? 'Yes' : 'No',
                   ),
                 ]
-              : [
-                  const _InfoItem('Status', 'Loading...'),
-                ],
+              : [const _InfoItem('Status', 'Loading...')],
         ),
 
         const SizedBox(height: 32),
@@ -456,10 +427,7 @@ class _DeviceInfoScreenState extends State<DeviceInfoScreen> {
     return [
       _InfoItem('Resolution', display.resolutionString),
       _InfoItem('Pixel Density', '${display.pixelDensity.toStringAsFixed(2)}x'),
-      _InfoItem(
-        'PPI',
-        display.pixelsPerInch.toStringAsFixed(0),
-      ),
+      _InfoItem('PPI', display.pixelsPerInch.toStringAsFixed(0)),
       _InfoItem('Refresh Rate', '${display.refreshRate} Hz'),
       _InfoItem(
         'Screen Size',
@@ -474,62 +442,60 @@ class _DeviceInfoScreenState extends State<DeviceInfoScreen> {
     final String title,
     final IconData icon,
     final List<_InfoItem> items,
-  ) =>
-      Card(
-        margin: const EdgeInsets.only(bottom: 16),
-        elevation: 2,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+  ) => Card(
+    margin: const EdgeInsets.only(bottom: 16),
+    elevation: 2,
+    child: Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              Row(
-                children: [
-                  Icon(icon, color: Theme.of(context).primaryColor),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      title,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: Theme.of(context).primaryColor,
-                          ),
-                    ),
+              Icon(icon, color: Theme.of(context).primaryColor),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).primaryColor,
                   ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              ...items
-                  .map((final item) => _buildInfoRow(item.label, item.value)),
-            ],
-          ),
-        ),
-      );
-
-  Widget _buildInfoRow(final String label, final String value) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(
-              width: 140,
-              child: Text(
-                '$label:',
-                style: const TextStyle(
-                  fontWeight: FontWeight.w500,
-                  color: Colors.grey,
                 ),
               ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          ...items.map((final item) => _buildInfoRow(item.label, item.value)),
+        ],
+      ),
+    ),
+  );
+
+  Widget _buildInfoRow(final String label, final String value) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 4),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 140,
+          child: Text(
+            '$label:',
+            style: const TextStyle(
+              fontWeight: FontWeight.w500,
+              color: Colors.grey,
             ),
-            Expanded(
-              child: Text(
-                value,
-                style: const TextStyle(fontWeight: FontWeight.w400),
-              ),
-            ),
-          ],
+          ),
         ),
-      );
+        Expanded(
+          child: Text(
+            value,
+            style: const TextStyle(fontWeight: FontWeight.w400),
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 class _InfoItem {
