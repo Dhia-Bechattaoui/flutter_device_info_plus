@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.3] - 2026-06-04
+
+### Fixed
+- **Cross-Platform Compilation**: Resolved a major compilation issue on macOS, iOS, Windows, and Linux where `dart:js_interop` (a web-only library) was unintentionally imported on non-web platforms. Implemented a robust conditional import architecture (`web_impl.dart` and `web_stub.dart`).
+- **Swift Package Manager**: Updated SPM integration for iOS and macOS to comply with the modern package structure, moving source code to `Sources/flutter_device_info_plus/` and resolving "target outside package root" and empty target errors.
+- **macOS Hardware API**: Fixed an Xcode build error (`kIOMainPortDefault` availability) by dynamically falling back to `kIOMasterPortDefault` on macOS versions older than 12.0.
+- **Static Analysis**: Resolved all lints and unused parameter warnings to maintain a perfect static analysis score.
+
 ## [0.3.2] - 2026-06-02
 
 ### Fixed
@@ -357,7 +365,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ✅ macOS (macOS 10.14+)
 - ✅ Linux (Ubuntu 18.04+)
 
-[Unreleased]: https://github.com/Dhia-Bechattaoui/flutter_device_info_plus/compare/v0.3.2...HEAD
+[Unreleased]: https://github.com/Dhia-Bechattaoui/flutter_device_info_plus/compare/v0.3.3...HEAD
+[0.3.3]: https://github.com/Dhia-Bechattaoui/flutter_device_info_plus/compare/v0.3.2...v0.3.3
 [0.3.2]: https://github.com/Dhia-Bechattaoui/flutter_device_info_plus/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/Dhia-Bechattaoui/flutter_device_info_plus/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/Dhia-Bechattaoui/flutter_device_info_plus/compare/v0.2.1...v0.3.0

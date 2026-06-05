@@ -11,12 +11,17 @@ let package = Package(
     products: [
         .library(name: "flutter-device-info-plus", targets: ["flutter_device_info_plus"])
     ],
-    dependencies: [],
+    dependencies: [
+        .package(name: "FlutterFramework", path: "../FlutterFramework")
+    ],
     targets: [
         .target(
             name: "flutter_device_info_plus",
-            dependencies: [],
+            dependencies: [
+                .product(name: "FlutterFramework", package: "FlutterFramework")
+            ],
             resources: []
         )
     ]
 )
+
