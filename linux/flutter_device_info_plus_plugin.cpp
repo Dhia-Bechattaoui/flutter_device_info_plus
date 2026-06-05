@@ -19,6 +19,8 @@
 #include <linux/if_packet.h>
 #include <linux/if_link.h>
 #include <cstring>
+#include <cctype>
+#include <algorithm>
 
 #define FLUTTER_DEVICE_INFO_PLUS_PLUGIN(obj) \
   (G_TYPE_CHECK_INSTANCE_CAST((obj), flutter_device_info_plus_plugin_get_type(), \
@@ -39,6 +41,170 @@ static std::string ReadFile(const std::string& path) {
     return buffer.str();
   }
   return "";
+}
+
+// Helper to trim whitespace
+static std::string Trim(const std::string& input) {
+  size_t start = input.find_first_not_of(" \t\n\r");
+  if (start == std::string::npos) {
+    return "";
+  }
+  size_t end = input.find_last_not_of(" \t\n\r");
+  return input.substr(start, end - start + 1);
+}
+
+// Helper to read and sanitize a single-line text value from file.
+static std::string ReadSingleLineValue(const std::string& path) {
+  std::string content = ReadFile(path);
+  if (content.empty()) {
+    return "";
+  }
+
+  for (char& c : content) {
+    if (c == '\0') {
+      c = ' ';
+    }
+  }
+
+  size_t endOfLine = content.find('\n');
+  if (endOfLine != std::string::npos) {
+    content = content.substr(0, endOfLine);
+  }
+
+  return Trim(content);
+}
+
+static bool IsPlaceholderHardwareValue(const std::string& value) {
+  if (value.empty()) {
+    return true;
+  }
+
+  std::string lower = value;
+  std::transform(lower.begin(), lower.end(), lower.begin(),
+                 [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+
+  return lower == "to be filled by o.e.m." ||
+         lower == "to be filled by oem" ||
+         lower == "default string" ||
+         lower == "not specified" ||
+         lower == "unknown" ||
+         lower == "none" ||
+         lower == "n/a";
+}
+
+static std::string GetLinuxHardwareVendor() {
+  std::string vendor = ReadSingleLineValue("/sys/devices/virtual/dmi/id/sys_vendor");
+  if (!IsPlaceholderHardwareValue(vendor)) {
+    return vendor;
+  }
+
+  std::string boardVendor = ReadSingleLineValue("/sys/devices/virtual/dmi/id/board_vendor");
+  if (!IsPlaceholderHardwareValue(boardVendor)) {
+    return boardVendor;
+  }
+
+  // ARM boards may expose the vendor in the device-tree compatible string.
+  std::string compatible = ReadSingleLineValue("/proc/device-tree/compatible");
+  if (!IsPlaceholderHardwareValue(compatible)) {
+    size_t commaPos = compatible.find(',');
+    if (commaPos != std::string::npos && commaPos > 0) {
+      return compatible.substr(0, commaPos);
+    }
+    return compatible;
+  }
+
+  return "Unknown";
+}
+
+static std::string GetLinuxHardwareModel(const struct utsname& unameInfo) {
+  std::string productName =
+      ReadSingleLineValue("/sys/devices/virtual/dmi/id/product_name");
+  std::string productVersion =
+      ReadSingleLineValue("/sys/devices/virtual/dmi/id/product_version");
+
+  if (!IsPlaceholderHardwareValue(productName)) {
+    std::string model = productName;
+
+    if (!IsPlaceholderHardwareValue(productVersion) &&
+        model.find(productVersion) == std::string::npos) {
+      model += " " + productVersion;
+    }
+
+    return Trim(model);
+  }
+
+  // ARM boards often expose model only via device-tree.
+  std::string dtModel = ReadSingleLineValue("/proc/device-tree/model");
+  if (!IsPlaceholderHardwareValue(dtModel)) {
+    return dtModel;
+  }
+
+  return unameInfo.machine;
+}
+
+// Helper to read a key from /etc/os-release
+static std::string ReadOsReleaseKey(const std::string& key) {
+  std::string osRelease = ReadFile("/etc/os-release");
+  if (osRelease.empty()) {
+    return "";
+  }
+
+  std::istringstream stream(osRelease);
+  std::string line;
+  std::string prefix = key + "=";
+
+  while (std::getline(stream, line)) {
+    if (line.rfind(prefix, 0) != 0) {
+      continue;
+    }
+
+    std::string value = Trim(line.substr(prefix.size()));
+    if (value.size() >= 2 && value.front() == '"' && value.back() == '"') {
+      value = value.substr(1, value.size() - 2);
+    }
+    return Trim(value);
+  }
+
+  return "";
+}
+
+static std::string GetLinuxDistributionName() {
+  std::string prettyName = ReadOsReleaseKey("PRETTY_NAME");
+  if (!prettyName.empty()) {
+    return prettyName;
+  }
+
+  std::string name = ReadOsReleaseKey("NAME");
+  if (!name.empty()) {
+    return name;
+  }
+
+  return "Linux";
+}
+
+static std::string GetLinuxDistributionVersion() {
+  std::string versionId = ReadOsReleaseKey("VERSION_ID");
+  if (!versionId.empty()) {
+    return versionId;
+  }
+
+  std::string version = ReadOsReleaseKey("VERSION");
+  if (!version.empty()) {
+    return version;
+  }
+
+  return "";
+}
+
+static std::string GetLinuxDistributionId() {
+  std::string id = ReadOsReleaseKey("ID");
+  if (id.empty()) {
+    return "Linux";
+  }
+
+  // Present distro ID with an initial uppercase letter.
+  id[0] = static_cast<char>(std::toupper(static_cast<unsigned char>(id[0])));
+  return id;
 }
 
 // Helper function to create FlValue from string
@@ -259,6 +425,113 @@ static std::string GetMACAddress() {
   return macAddress;
 }
 
+static bool StartsWith(const std::string& value, const std::string& prefix) {
+  return value.rfind(prefix, 0) == 0;
+}
+
+static std::string GetDefaultRouteInterface() {
+  std::ifstream routeFile("/proc/net/route");
+  if (!routeFile.is_open()) {
+    return "";
+  }
+
+  std::string line;
+  std::getline(routeFile, line);  // Skip header.
+
+  while (std::getline(routeFile, line)) {
+    std::istringstream ss(line);
+    std::string iface;
+    std::string destination;
+    std::string gateway;
+    std::string flags;
+
+    ss >> iface >> destination >> gateway >> flags;
+    if (iface.empty()) {
+      continue;
+    }
+
+    if (destination == "00000000" && iface != "lo") {
+      return iface;
+    }
+  }
+
+  return "";
+}
+
+static std::string GetActiveNetworkInterface() {
+  std::string iface = GetDefaultRouteInterface();
+  if (!iface.empty()) {
+    return iface;
+  }
+
+  struct ifaddrs* ifaddr;
+  if (getifaddrs(&ifaddr) != 0) {
+    return "";
+  }
+
+  std::string activeInterface;
+  for (struct ifaddrs* ifa = ifaddr; ifa != nullptr; ifa = ifa->ifa_next) {
+    if (ifa->ifa_addr == nullptr || ifa->ifa_name == nullptr) {
+      continue;
+    }
+
+    if (ifa->ifa_addr->sa_family != AF_PACKET) {
+      continue;
+    }
+
+    if ((ifa->ifa_flags & IFF_UP) == 0 || (ifa->ifa_flags & IFF_LOOPBACK) != 0) {
+      continue;
+    }
+
+    activeInterface = ifa->ifa_name;
+    break;
+  }
+
+  freeifaddrs(ifaddr);
+  return activeInterface;
+}
+
+static std::string GetConnectionTypeByInterface(const std::string& iface) {
+  if (iface.empty()) {
+    return "none";
+  }
+
+  const std::string wirelessPath = "/sys/class/net/" + iface + "/wireless";
+  if (access(wirelessPath.c_str(), F_OK) == 0) {
+    return "wifi";
+  }
+
+  if (StartsWith(iface, "wwan") || StartsWith(iface, "rmnet") ||
+      StartsWith(iface, "ccmni")) {
+    return "cellular";
+  }
+
+  return "ethernet";
+}
+
+static std::string GetNetworkSpeedByInterface(const std::string& iface) {
+  if (iface.empty()) {
+    return "Unknown";
+  }
+
+  const std::string speedPath = "/sys/class/net/" + iface + "/speed";
+  std::string speedValue = ReadSingleLineValue(speedPath);
+  if (speedValue.empty()) {
+    return "Unknown";
+  }
+
+  try {
+    int speedMbps = std::stoi(speedValue);
+    if (speedMbps > 0) {
+      return std::to_string(speedMbps) + " Mbps";
+    }
+  } catch (const std::exception&) {
+    return "Unknown";
+  }
+
+  return "Unknown";
+}
+
 // Get device ID
 static std::string GetDeviceId() {
   std::string machineId = ReadFile("/etc/machine-id");
@@ -284,12 +557,21 @@ static FlValue* GetDeviceInfo() {
   // Get system info
   struct utsname unameInfo;
   uname(&unameInfo);
+
+  std::string distroName = GetLinuxDistributionName();
+  std::string distroVersion = GetLinuxDistributionVersion();
+  std::string distroId = GetLinuxDistributionId();
+  std::string hardwareVendor = GetLinuxHardwareVendor();
+  std::string hardwareModel = GetLinuxHardwareModel(unameInfo);
   
-  SetMapValue(deviceInfo, "manufacturer", CreateStringValue("Unknown"));
-  SetMapValue(deviceInfo, "model", CreateStringValue("Linux PC"));
-  SetMapValue(deviceInfo, "brand", CreateStringValue("Linux"));
-  SetMapValue(deviceInfo, "operatingSystem", CreateStringValue("Linux"));
-  SetMapValue(deviceInfo, "systemVersion", CreateStringValue(unameInfo.release));
+  SetMapValue(deviceInfo, "manufacturer", CreateStringValue(hardwareVendor));
+  SetMapValue(deviceInfo, "model", CreateStringValue(hardwareModel));
+  SetMapValue(deviceInfo, "brand", CreateStringValue(hardwareVendor));
+  SetMapValue(deviceInfo, "operatingSystem", CreateStringValue(distroId));
+  SetMapValue(
+      deviceInfo,
+      "systemVersion",
+      CreateStringValue(distroVersion.empty() ? unameInfo.release : distroVersion));
   SetMapValue(deviceInfo, "buildNumber", CreateStringValue(unameInfo.version));
   SetMapValue(deviceInfo, "kernelVersion", CreateStringValue(unameInfo.release));
   
@@ -393,15 +675,18 @@ static FlValue* GetSensorInfo() {
 static FlValue* GetNetworkInfo() {
   FlValue* networkInfo = CreateMapValue();
   
+  std::string activeInterface = GetActiveNetworkInterface();
   std::string ipAddress = GetIPAddress();
   std::string macAddress = GetMACAddress();
+  std::string connectionType = GetConnectionTypeByInterface(activeInterface);
+  std::string networkSpeed = GetNetworkSpeedByInterface(activeInterface);
   
-  SetMapValue(networkInfo, "connectionType", CreateStringValue("ethernet"));
-  SetMapValue(networkInfo, "networkSpeed", CreateStringValue("Unknown"));
+  SetMapValue(networkInfo, "connectionType", CreateStringValue(connectionType));
+  SetMapValue(networkInfo, "networkSpeed", CreateStringValue(networkSpeed));
   SetMapValue(
       networkInfo,
       "isConnected",
-      CreateBoolValue(!ipAddress.empty() && ipAddress != "unknown"));
+      CreateBoolValue(!activeInterface.empty() && !ipAddress.empty() && ipAddress != "unknown"));
   SetMapValue(networkInfo, "ipAddress", CreateStringValue(ipAddress));
   SetMapValue(networkInfo, "macAddress", CreateStringValue(macAddress));
   

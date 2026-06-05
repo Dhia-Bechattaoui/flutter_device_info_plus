@@ -1,24 +1,135 @@
+// 1. ABSOLUTE SOCKET GUARD (Must be at the absolute top)
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#define _WINSOCKAPI_   // Prevents windows.h from loading the legacy winsock.h header
+
+// 2. MODERN WINDOWS SOCKETS
+#include <winsock2.h>
+#include <ws2tcpip.h>
+
+// 3. PLUGIN HEADER (Processed on a clean, guarded environment)
 #include "flutter_device_info_plus_plugin.h"
 
-// This must be included before many other Windows headers.
+// 4. WINDOWS SYSTEM APIS
 #include <windows.h>
+#include <iphlpapi.h>
+#include <winternl.h>
+#include <pdh.h>
+#include <psapi.h>
+#include <intrin.h>
 
+// 5. FLUTTER ENGINE HEADERS
 #include <flutter/method_channel.h>
 #include <flutter/plugin_registrar_windows.h>
 #include <flutter/standard_method_codec.h>
 
-#include <winternl.h>
-#include <iphlpapi.h>
-#include <pdh.h>
-#include <psapi.h>
-#include <intrin.h>
+// 6. C++ STANDARD TEMPLATE LIBRARY (STL)
 #include <sstream>
 #include <memory>
 #include <vector>
 #include <map>
+#include <string>
+#include <iomanip>
+
+// Link-time static libraries for MSVC Compiler
+#pragma comment(lib, "iphlpapi.lib")
+#pragma comment(lib, "ws2_32.lib")
+#pragma comment(lib, "pdh.lib")
 
 namespace flutter_device_info_plus {
 
+// SMBIOS structure definition for the table entry header
+struct SMBIOSHeader {
+    BYTE Type;
+    BYTE Length;
+    WORD Handle;
+};
+
+// SMBIOS structure definition for Type 1: System Information
+struct SMBIOS_Type1 {
+    SMBIOSHeader Header;
+    BYTE ManufacturerIdx;
+    BYTE ProductNameIdx;
+    BYTE VersionIdx;
+    BYTE SerialNumberIdx;
+};
+
+/**
+ * Extracts a specific null-terminated string from the SMBIOS string pool area
+ * based on its 1-based index assigned inside the hardware structure.
+ */
+std::string GetSMBIOSStringData(BYTE* pStrings, BYTE index) {
+    if (index == 0) return "Unknown";
+    while (--index > 0) {
+        while (*pStrings != 0) pStrings++;
+        pStrings++; // Step over the null terminator of the previous string
+    }
+    return std::string((char*)pStrings);
+}
+
+/**
+ * Queries the local System Firmware Table ('RSMB') to fetch raw SMBIOS entries
+ * and parses Type 1 structures to look up native desktop hardware information.
+ */
+std::string QuerySMBIOSField(int fieldType) {
+    std::string result = "";
+    DWORD bufferSize = GetSystemFirmwareTable('RSMB', 0, nullptr, 0);
+    
+    if (bufferSize > 0) {
+        std::vector<BYTE> buffer(bufferSize);
+        if (GetSystemFirmwareTable('RSMB', 0, buffer.data(), bufferSize) == bufferSize) {
+            // Skip the 8-byte SMBIOS firmware provider header
+            BYTE* pData = buffer.data() + 8; 
+            BYTE* pEnd = buffer.data() + bufferSize;
+
+            while (pData < pEnd) {
+                SMBIOSHeader* header = (SMBIOSHeader*)pData;
+                
+                // Filter specifically for Type 1 (System Information) structural layouts
+                if (header->Type == 1 && header->Length >= sizeof(SMBIOS_Type1)) {
+                    SMBIOS_Type1* type1 = (SMBIOS_Type1*)pData;
+                    BYTE* pStrings = pData + header->Length;
+
+                    if (fieldType == 1) { // Extract Hardware Manufacturer / Brand
+                        result = GetSMBIOSStringData(pStrings, type1->ManufacturerIdx);
+                    } else if (fieldType == 2) { // Extract Hardware Product Model Name
+                        result = GetSMBIOSStringData(pStrings, type1->ProductNameIdx);
+                    }
+                    break; // Target block located and handled, break loop execution
+                }
+
+                // Advance over current block structures along with its variable-length string pool
+                pData += header->Length;
+                while (pData < pEnd && (*pData != 0 || *(pData + 1) != 0)) {
+                    pData++;
+                }
+                pData += 2; // Jump over the double null-terminator sequence ending the pool
+            }
+        }
+    }
+    return result;
+}
+
+std::string GetWindowsManufacturer() {
+    std::string val = QuerySMBIOSField(1);
+    return val.empty() ? "Microsoft" : val;
+}
+
+std::string GetWindowsModel() {
+    std::string val = QuerySMBIOSField(2);
+    return val.empty() ? "Windows PC" : val;
+}
+
+std::string GetWindowsBrand() {
+    std::string val = QuerySMBIOSField(1);
+    return val.empty() ? "Microsoft" : val;
+}
+
+/**
+ * Registers the device information plugin instance within the Flutter build environment
+ * and ties incoming Dart platform communications to the standard handler routine.
+ */
 void FlutterDeviceInfoPlusPlugin::RegisterWithRegistrar(
     flutter::PluginRegistrarWindows *registrar) {
   auto channel =
@@ -40,6 +151,10 @@ FlutterDeviceInfoPlusPlugin::FlutterDeviceInfoPlusPlugin() {}
 
 FlutterDeviceInfoPlusPlugin::~FlutterDeviceInfoPlusPlugin() {}
 
+/**
+ * Distributes executing actions to their dedicated native internal retrieval procedures
+ * based on the incoming channel identifier string originating from Dart.
+ */
 void FlutterDeviceInfoPlusPlugin::HandleMethodCall(
     const flutter::MethodCall<flutter::EncodableValue> &method_call,
     std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
@@ -56,49 +171,79 @@ void FlutterDeviceInfoPlusPlugin::HandleMethodCall(
   }
 }
 
+/**
+ * Fetches thorough operating system details, native hardware descriptions, processor attributes,
+ * physical memory capabilities, display configurations, and default host environment variables.
+ */
 flutter::EncodableMap FlutterDeviceInfoPlusPlugin::GetDeviceInfo() {
   flutter::EncodableMap deviceInfo;
   
-  // Basic device info
+  // Basic device host name mapping
   char computerName[MAX_COMPUTERNAME_LENGTH + 1];
   DWORD size = sizeof(computerName);
   GetComputerNameA(computerName, &size);
+
   deviceInfo[flutter::EncodableValue("deviceId")] = flutter::EncodableValue(GetDeviceId());
   deviceInfo[flutter::EncodableValue("deviceName")] = flutter::EncodableValue(std::string(computerName));
   
-  // Use RtlGetVersion instead of deprecated GetVersionEx
+  // Dynamic linking to RtlGetVersion to bypass application manifest compatibility shims
   typedef NTSTATUS (WINAPI *RtlGetVersionPtr)(PRTL_OSVERSIONINFOEXW);
   HMODULE hMod = GetModuleHandleW(L"ntdll.dll");
+
   if (hMod) {
     RtlGetVersionPtr fxPtr = (RtlGetVersionPtr)GetProcAddress(hMod, "RtlGetVersion");
     if (fxPtr != nullptr) {
       RTL_OSVERSIONINFOEXW osvi = {0};
       osvi.dwOSVersionInfoSize = sizeof(osvi);
       if (fxPtr(&osvi) == 0) {
-        std::string version = std::to_string(osvi.dwMajorVersion) + "." + 
-                              std::to_string(osvi.dwMinorVersion);
+        std::string version = "";
+
+        // Evaluate build thresholds to properly classify marketing names
+        if (osvi.dwBuildNumber >= 22000) {
+          version = "11";
+        } else if (osvi.dwBuildNumber >= 10240 && osvi.dwBuildNumber < 22000) {
+          version = "10";
+        } else if (osvi.dwBuildNumber >= 9600 && osvi.dwBuildNumber < 10240) {
+          version = "8.1";
+        } else if (osvi.dwBuildNumber >= 9200 && osvi.dwBuildNumber < 9600) {
+          version = "8";
+        } else if (osvi.dwBuildNumber >= 7600 && osvi.dwBuildNumber < 9200) {
+          version = "7";
+        } else if (osvi.dwBuildNumber >= 6000 && osvi.dwBuildNumber < 7600) {
+          version = "Vista";
+        } else {
+          version = std::to_string(osvi.dwMajorVersion) + "." + std::to_string(osvi.dwMinorVersion);
+        }
+
+        std::string buildNumber = std::to_string(osvi.dwBuildNumber);
+        std::string kernelVersion = std::to_string(osvi.dwMajorVersion) + "." + std::to_string(osvi.dwMinorVersion) + "." + std::to_string(osvi.dwBuildNumber);
+        
         deviceInfo[flutter::EncodableValue("systemVersion")] = flutter::EncodableValue(version);
-        deviceInfo[flutter::EncodableValue("buildNumber")] = flutter::EncodableValue(std::to_string(osvi.dwBuildNumber));
+        deviceInfo[flutter::EncodableValue("buildNumber")] = flutter::EncodableValue(buildNumber);
+        deviceInfo[flutter::EncodableValue("kernelVersion")] = flutter::EncodableValue(kernelVersion);
       } else {
-        deviceInfo[flutter::EncodableValue("systemVersion")] = flutter::EncodableValue("10.0");
-        deviceInfo[flutter::EncodableValue("buildNumber")] = flutter::EncodableValue("0");
+        deviceInfo[flutter::EncodableValue("systemVersion")] = flutter::EncodableValue("Unknown");
+        deviceInfo[flutter::EncodableValue("buildNumber")] = flutter::EncodableValue("Unknown");
+        deviceInfo[flutter::EncodableValue("kernelVersion")] = flutter::EncodableValue("NT");
       }
     } else {
-      deviceInfo[flutter::EncodableValue("systemVersion")] = flutter::EncodableValue("10.0");
-      deviceInfo[flutter::EncodableValue("buildNumber")] = flutter::EncodableValue("0");
+      deviceInfo[flutter::EncodableValue("systemVersion")] = flutter::EncodableValue("Unknown");
+      deviceInfo[flutter::EncodableValue("buildNumber")] = flutter::EncodableValue("Unknown");
+      deviceInfo[flutter::EncodableValue("kernelVersion")] = flutter::EncodableValue("NT");
     }
   } else {
-    deviceInfo[flutter::EncodableValue("systemVersion")] = flutter::EncodableValue("10.0");
-    deviceInfo[flutter::EncodableValue("buildNumber")] = flutter::EncodableValue("0");
+    deviceInfo[flutter::EncodableValue("systemVersion")] = flutter::EncodableValue("Unknown");
+    deviceInfo[flutter::EncodableValue("buildNumber")] = flutter::EncodableValue("Unknown");
+    deviceInfo[flutter::EncodableValue("kernelVersion")] = flutter::EncodableValue("NT");
   }
   
-  deviceInfo[flutter::EncodableValue("manufacturer")] = flutter::EncodableValue("Microsoft");
-  deviceInfo[flutter::EncodableValue("model")] = flutter::EncodableValue("Windows PC");
-  deviceInfo[flutter::EncodableValue("brand")] = flutter::EncodableValue("Microsoft");
+  // Inject base device identity variables retrieved via SMBIOS routines
+  deviceInfo[flutter::EncodableValue("manufacturer")] = flutter::EncodableValue(GetWindowsManufacturer());
+  deviceInfo[flutter::EncodableValue("model")] = flutter::EncodableValue(GetWindowsModel());
+  deviceInfo[flutter::EncodableValue("brand")] = flutter::EncodableValue(GetWindowsBrand());
   deviceInfo[flutter::EncodableValue("operatingSystem")] = flutter::EncodableValue("Windows");
-  deviceInfo[flutter::EncodableValue("kernelVersion")] = flutter::EncodableValue("NT");
   
-  // Processor info
+  // Processor specifications allocation
   flutter::EncodableMap processorInfo;
   processorInfo[flutter::EncodableValue("architecture")] = flutter::EncodableValue(GetProcessorArchitecture());
   processorInfo[flutter::EncodableValue("coreCount")] = flutter::EncodableValue(GetProcessorCoreCount());
@@ -112,7 +257,7 @@ flutter::EncodableMap FlutterDeviceInfoPlusPlugin::GetDeviceInfo() {
   processorInfo[flutter::EncodableValue("features")] = flutter::EncodableValue(features);
   deviceInfo[flutter::EncodableValue("processorInfo")] = flutter::EncodableValue(processorInfo);
   
-  // Memory info
+  // Global memory capacity map configurations
   flutter::EncodableMap memoryInfo;
   int64_t totalMem = GetTotalPhysicalMemory();
   int64_t availMem = GetAvailablePhysicalMemory();
@@ -128,7 +273,7 @@ flutter::EncodableMap FlutterDeviceInfoPlusPlugin::GetDeviceInfo() {
       flutter::EncodableValue(totalMem > 0 ? ((totalMem - availMem) * 100.0 / totalMem) : 0.0);
   deviceInfo[flutter::EncodableValue("memoryInfo")] = flutter::EncodableValue(memoryInfo);
   
-  // Display info
+  // Graphics display environment specifications mapping
   flutter::EncodableMap displayInfo;
   int width = GetScreenWidth();
   int height = GetScreenHeight();
@@ -139,12 +284,12 @@ flutter::EncodableMap FlutterDeviceInfoPlusPlugin::GetDeviceInfo() {
   displayInfo[flutter::EncodableValue("screenHeight")] = flutter::EncodableValue(height);
   displayInfo[flutter::EncodableValue("pixelDensity")] = flutter::EncodableValue(density);
   displayInfo[flutter::EncodableValue("refreshRate")] = flutter::EncodableValue(refreshRate);
-  displayInfo[flutter::EncodableValue("screenSizeInches")] = flutter::EncodableValue(24.0); // Approximate
+  displayInfo[flutter::EncodableValue("screenSizeInches")] = flutter::EncodableValue(24.0);
   displayInfo[flutter::EncodableValue("orientation")] = flutter::EncodableValue(width > height ? "landscape" : "portrait");
   displayInfo[flutter::EncodableValue("isHdr")] = flutter::EncodableValue(false);
   deviceInfo[flutter::EncodableValue("displayInfo")] = flutter::EncodableValue(displayInfo);
   
-  // Security info
+  // Security capabilities parameters definition
   flutter::EncodableMap securityInfo;
   securityInfo[flutter::EncodableValue("isDeviceSecure")] = flutter::EncodableValue(true);
   securityInfo[flutter::EncodableValue("hasFingerprint")] = flutter::EncodableValue(false);
@@ -156,6 +301,10 @@ flutter::EncodableMap FlutterDeviceInfoPlusPlugin::GetDeviceInfo() {
   return deviceInfo;
 }
 
+/**
+ * Retrieves energy configurations and status reports via standard device subsystem mappings.
+ * Returns an empty collection container if execution runs on battery-free desktops.
+ */
 flutter::EncodableMap FlutterDeviceInfoPlusPlugin::GetBatteryInfo() {
   flutter::EncodableMap batteryInfo;
   
@@ -174,8 +323,7 @@ flutter::EncodableMap FlutterDeviceInfoPlusPlugin::GetBatteryInfo() {
     batteryInfo[flutter::EncodableValue("batteryVoltage")] = flutter::EncodableValue(0.0);
     batteryInfo[flutter::EncodableValue("batteryTemperature")] = flutter::EncodableValue(0.0);
   } else {
-    // No battery (desktop)
-    return flutter::EncodableMap(); // Return empty map, will be null in Dart
+    return flutter::EncodableMap();
   }
   
   return batteryInfo;
@@ -185,28 +333,112 @@ flutter::EncodableMap FlutterDeviceInfoPlusPlugin::GetSensorInfo() {
   flutter::EncodableMap sensorInfo;
   flutter::EncodableList sensors;
   
-  // Windows doesn't have many sensors accessible via standard APIs
-  // Most sensors would require device-specific drivers
-  sensors.push_back(flutter::EncodableValue("accelerometer")); // If available via drivers
+  sensors.push_back(flutter::EncodableValue("accelerometer"));
   
   sensorInfo[flutter::EncodableValue("availableSensors")] = flutter::EncodableValue(sensors);
   return sensorInfo;
 }
 
+/**
+ * Scans active network drivers via the native IP Helper API (`GetAdaptersAddresses`)
+ * to discover connection paths, compute precise line speeds, look up hardware MAC layout strings,
+ * extract IPv4 addresses, and evaluate real-time terminal network status boundaries.
+ */
 flutter::EncodableMap FlutterDeviceInfoPlusPlugin::GetNetworkInfo() {
-  flutter::EncodableMap networkInfo;
-  
-  std::string ipAddress = GetIPAddress();
-  std::string macAddress = GetMACAddress();
-  
-  networkInfo[flutter::EncodableValue("connectionType")] = flutter::EncodableValue("ethernet");
-  networkInfo[flutter::EncodableValue("networkSpeed")] = flutter::EncodableValue("Unknown");
-  networkInfo[flutter::EncodableValue("isConnected")] = flutter::EncodableValue(
-      !ipAddress.empty() && ipAddress != "unknown" && ipAddress != "0.0.0.0");
-  networkInfo[flutter::EncodableValue("ipAddress")] = flutter::EncodableValue(ipAddress);
-  networkInfo[flutter::EncodableValue("macAddress")] = flutter::EncodableValue(macAddress);
-  
-  return networkInfo;
+    flutter::EncodableMap networkInfo;
+
+    std::string connectionType = "none";
+    std::string networkSpeed = "Unknown";
+    std::string ipAddress = "Unknown";
+    std::string macAddress = "Unknown";
+
+    ULONG bufferSize = 15000; // Allocate a solid safety initial table buffer size
+    std::vector<BYTE> buffer(bufferSize);
+    PIP_ADAPTER_ADDRESSES adapters = reinterpret_cast<PIP_ADAPTER_ADDRESSES>(buffer.data());
+
+    // Request IPv4 adapter details exclusively to avoid local tunnel pollution
+    ULONG result = GetAdaptersAddresses(AF_INET, GAA_FLAG_INCLUDE_GATEWAYS, nullptr, adapters, &bufferSize);
+    
+    // Resize vector explicitly if the framework flags an unexpected buffer threshold crash
+    if (result == ERROR_BUFFER_OVERFLOW) {
+        buffer.resize(bufferSize);
+        adapters = reinterpret_cast<PIP_ADAPTER_ADDRESSES>(buffer.data());
+        result = GetAdaptersAddresses(AF_INET, GAA_FLAG_INCLUDE_GATEWAYS, nullptr, adapters, &bufferSize);
+    }
+
+    if (result == NO_ERROR) {
+        PIP_ADAPTER_ADDRESSES adapter = adapters;
+        while (adapter != nullptr) {
+            // Target only running adaptors bound directly to a valid network path configuration
+            if (adapter->OperStatus == IfOperStatusUp && adapter->FirstGatewayAddress != nullptr) {
+                
+                // 1. DETERMINE HARDWARE MEDIUM TYPE
+                if (adapter->IfType == IF_TYPE_ETHERNET_CSMACD) {
+                    connectionType = "ethernet";
+                } else if (adapter->IfType == IF_TYPE_IEEE80211) {
+                    connectionType = "wifi";
+                } else if (adapter->IfType == IF_TYPE_WWANPP || adapter->IfType == IF_TYPE_WWANPP2) {
+                    connectionType = "cellular";
+                } else if (adapter->IfType == IF_TYPE_SOFTWARE_LOOPBACK) {
+                    adapter = adapter->Next;
+                    continue; // Discard localhost adapter interfaces
+                } else {
+                    connectionType = "other";
+                }
+
+                // 2. COMPUTE SYSTEM LINK TRANSMISSION SPEED
+                ULONGLONG speedBps = adapter->ReceiveLinkSpeed;
+                if (speedBps > 0 && speedBps != MAXULONGLONG) {
+                    if (speedBps >= 1000000000ULL) {
+                        double speedGbps = static_cast<double>(speedBps) / 1000000000.0;
+                        networkSpeed = std::to_string(static_cast<int>(speedGbps)) + " Gbps";
+                    } else {
+                        double speedMbps = static_cast<double>(speedBps) / 1000000.0;
+                        networkSpeed = std::to_string(static_cast<int>(speedMbps)) + " Mbps";
+                    }
+                }
+
+                // 3. EXTRACT THE IPV4 ADDRESS VALUE
+                if (adapter->FirstUnicastAddress != nullptr) {
+                    sockaddr_in* sockaddr_ipv4 = reinterpret_cast<sockaddr_in*>(adapter->FirstUnicastAddress->Address.lpSockaddr);
+                    char ipBuffer[INET_ADDRSTRLEN];
+                    if (InetNtopA(AF_INET, &(sockaddr_ipv4->sin_addr), ipBuffer, INET_ADDRSTRLEN) != nullptr) {
+                        ipAddress = std::string(ipBuffer);
+                    }
+                }
+
+                // 4. FORMAT PHYSICAL ADDRESS BYTE SEQUENCES INTO COLON-SEPARATED MAC STRINGS
+                if (adapter->PhysicalAddressLength > 0) {
+                    std::stringstream macStream;
+                    for (ULONG i = 0; i < adapter->PhysicalAddressLength; ++i) {
+                        macStream << std::setw(2) << std::setfill('0') << std::hex << std::uppercase 
+                                  << static_cast<int>(adapter->PhysicalAddress[i]);
+                        if (i < adapter->PhysicalAddressLength - 1) {
+                            macStream << ":";
+                        }
+                    }
+                    macAddress = macStream.str();
+                }
+                
+                break; // Break loop execution as soon as the main active interface info is caught
+            }
+            adapter = adapter->Next;
+        }
+    }
+
+    // Guard against blank entries, unassigned slots, zero fallbacks, and APIPA autoconfig allocations (169.254.x.x)
+    bool isConnected = (!ipAddress.empty() && 
+                        ipAddress != "Unknown" && 
+                        ipAddress != "0.0.0.0" && 
+                        ipAddress.rfind("169.254", 0) != 0);
+
+    networkInfo[flutter::EncodableValue("isConnected")] = flutter::EncodableValue(isConnected);
+    networkInfo[flutter::EncodableValue("connectionType")] = flutter::EncodableValue(std::string(connectionType));
+    networkInfo[flutter::EncodableValue("networkSpeed")]   = flutter::EncodableValue(std::string(networkSpeed));
+    networkInfo[flutter::EncodableValue("ipAddress")]      = flutter::EncodableValue(std::string(ipAddress));
+    networkInfo[flutter::EncodableValue("macAddress")]     = flutter::EncodableValue(std::string(macAddress));
+
+    return networkInfo;
 }
 
 std::string FlutterDeviceInfoPlusPlugin::GetProcessorArchitecture() {
@@ -235,22 +467,6 @@ int FlutterDeviceInfoPlusPlugin::GetProcessorCoreCount() {
   return si.dwNumberOfProcessors;
 }
 
-int FlutterDeviceInfoPlusPlugin::GetProcessorMaxFrequency() {
-  HKEY hKey;
-  if (RegOpenKeyExA(HKEY_LOCAL_MACHINE, 
-                    "HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0",
-                    0, KEY_READ, &hKey) == ERROR_SUCCESS) {
-    DWORD maxMHz = 0;
-    DWORD size = sizeof(DWORD);
-    if (RegQueryValueExA(hKey, "~MHz", NULL, NULL, (LPBYTE)&maxMHz, &size) == ERROR_SUCCESS) {
-      RegCloseKey(hKey);
-      return maxMHz;
-    }
-    RegCloseKey(hKey);
-  }
-  return 0;
-}
-
 std::string FlutterDeviceInfoPlusPlugin::GetProcessorName() {
   HKEY hKey;
   char processorName[256] = {0};
@@ -269,6 +485,26 @@ std::string FlutterDeviceInfoPlusPlugin::GetProcessorName() {
   return "Unknown Processor";
 }
 
+int FlutterDeviceInfoPlusPlugin::GetProcessorMaxFrequency() {
+  HKEY hKey;
+  if (RegOpenKeyExA(HKEY_LOCAL_MACHINE, 
+                    "HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0",
+                    0, KEY_READ, &hKey) == ERROR_SUCCESS) {
+    DWORD maxMHz = 0;
+    DWORD size = sizeof(DWORD);
+    if (RegQueryValueExA(hKey, "~MHz", NULL, NULL, (LPBYTE)&maxMHz, &size) == ERROR_SUCCESS) {
+      RegCloseKey(hKey);
+      return maxMHz;
+    }
+    RegCloseKey(hKey);
+  }
+  return 0;
+}
+
+/**
+ * Executes a compiler-level CPUID bitmask validation routine to probe hardware execution support
+ * for common instructional features (MMX, SSE extensions, AVX2 vector pipelines).
+ */
 std::vector<std::string> FlutterDeviceInfoPlusPlugin::GetProcessorFeatures() {
   std::vector<std::string> features;
   
@@ -332,7 +568,7 @@ double FlutterDeviceInfoPlusPlugin::GetPixelDensity() {
   HDC hdc = GetDC(NULL);
   int dpi = GetDeviceCaps(hdc, LOGPIXELSX);
   ReleaseDC(NULL, hdc);
-  return dpi / 96.0; // 96 DPI is standard
+  return dpi / 96.0; // 96 DPI stands as the baseline scaling dimension
 }
 
 double FlutterDeviceInfoPlusPlugin::GetRefreshRate() {
@@ -344,45 +580,10 @@ double FlutterDeviceInfoPlusPlugin::GetRefreshRate() {
   return 60.0;
 }
 
-std::string FlutterDeviceInfoPlusPlugin::GetIPAddress() {
-  IP_ADAPTER_INFO adapterInfo[16];
-  DWORD dwBufLen = sizeof(adapterInfo);
-  
-  if (GetAdaptersInfo(adapterInfo, &dwBufLen) == ERROR_SUCCESS) {
-    PIP_ADAPTER_INFO pAdapterInfo = adapterInfo;
-    do {
-      // IF_TYPE_ETHERNET = 6, IF_TYPE_IEEE80211 = 71
-      if (pAdapterInfo->Type == 6 || pAdapterInfo->Type == 71) {
-        return std::string(pAdapterInfo->IpAddressList.IpAddress.String);
-      }
-      pAdapterInfo = pAdapterInfo->Next;
-    } while (pAdapterInfo);
-  }
-  return "unknown";
-}
-
-std::string FlutterDeviceInfoPlusPlugin::GetMACAddress() {
-  IP_ADAPTER_INFO adapterInfo[16];
-  DWORD dwBufLen = sizeof(adapterInfo);
-  
-  if (GetAdaptersInfo(adapterInfo, &dwBufLen) == ERROR_SUCCESS) {
-    PIP_ADAPTER_INFO pAdapterInfo = adapterInfo;
-    do {
-      // IF_TYPE_ETHERNET = 6, IF_TYPE_IEEE80211 = 71
-      if (pAdapterInfo->Type == 6 || pAdapterInfo->Type == 71) {
-        char mac[18];
-        sprintf_s(mac, "%02X:%02X:%02X:%02X:%02X:%02X",
-                  pAdapterInfo->Address[0], pAdapterInfo->Address[1],
-                  pAdapterInfo->Address[2], pAdapterInfo->Address[3],
-                  pAdapterInfo->Address[4], pAdapterInfo->Address[5]);
-        return std::string(mac);
-      }
-      pAdapterInfo = pAdapterInfo->Next;
-    } while (pAdapterInfo);
-  }
-  return "unknown";
-}
-
+/**
+ * Extracts the primary volume serial identification hash from disk sectors
+ * to use as a stable hardware identifier anchor point.
+ */
 std::string FlutterDeviceInfoPlusPlugin::GetDeviceId() {
   DWORD volumeSerialNumber;
   if (GetVolumeInformationA("C:\\", NULL, 0, &volumeSerialNumber, NULL, NULL, NULL, 0)) {

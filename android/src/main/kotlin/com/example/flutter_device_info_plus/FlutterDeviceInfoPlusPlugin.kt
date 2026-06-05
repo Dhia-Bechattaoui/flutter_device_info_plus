@@ -95,10 +95,11 @@ class FlutterDeviceInfoPlusPlugin : FlutterPlugin, MethodChannel.MethodCallHandl
         val cpuInfo = getCpuInfo()
 
         val deviceId = Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID) ?: "Unknown"
+        val deviceName = Settings.Global.getString(context.contentResolver, Settings.Global.DEVICE_NAME) ?: Build.MODEL ?: "Unknown"
 
         return mapOf(
             "deviceId" to deviceId,
-            "deviceName" to Build.MODEL,
+            "deviceName" to deviceName,
             "manufacturer" to Build.MANUFACTURER,
             "model" to Build.MODEL,
             "brand" to Build.BRAND,
@@ -375,7 +376,7 @@ class FlutterDeviceInfoPlusPlugin : FlutterPlugin, MethodChannel.MethodCallHandl
             else -> "none"
         }
 
-        val isConnected = capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+        val isConnected = connectionType != "none" && capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
                 capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
 
         // Get IP address

@@ -1,6 +1,6 @@
 name: flutter_device_info_plus
 description: Enhanced device information with detailed hardware specs and capabilities. Get comprehensive device data including CPU, memory, storage, sensors, and system information.
-version: 0.3.2
+version: 0.3.3
 homepage: https://github.com/Dhia-Bechattaoui/flutter_device_info_plus
 repository: https://github.com/Dhia-Bechattaoui/flutter_device_info_plus
 issue_tracker: https://github.com/Dhia-Bechattaoui/flutter_device_info_plus/issues
@@ -15,15 +15,15 @@ dependencies:
     sdk: flutter
   flutter_web_plugins:
     sdk: flutter
-  web: ^1.0.0
+  web: ^1.1.1
 
 dev_dependencies:
   build_runner: ^2.0.0
   flutter_lints: ^6.0.0
   flutter_test:
     sdk: flutter
-  mockito: ^5.0.0
-  test: ^1.0.0
+  mockito: ^5.6.4
+  test: ^1.31.0
 
 flutter:
   plugin:
