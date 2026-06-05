@@ -33,7 +33,7 @@ class FlutterDeviceInfoPlusPlugin : public flutter::Plugin {
   flutter::EncodableMap GetDeviceInfo();
   flutter::EncodableMap GetBatteryInfo();
   flutter::EncodableMap GetSensorInfo();
-  flutter::EncodableMap GetNetworkInfo();
+  flutter::EncodableMap GetNetworkInfo(); // <-- Ejecuta la lógica interna de IP, MAC, velocidad y conectividad
 
   // Processor information methods
   std::string GetProcessorArchitecture();
@@ -54,9 +54,7 @@ class FlutterDeviceInfoPlusPlugin : public flutter::Plugin {
   double GetPixelDensity();
   double GetRefreshRate();
 
-  // Network information methods
-  std::string GetIPAddress();
-  std::string GetMACAddress();
+  // Security / Identification methods
   std::string GetDeviceId();
 };
 
