@@ -91,6 +91,58 @@ class FlutterDeviceInfoPlusPlugin : FlutterPlugin, MethodChannel.MethodCallHandl
         val availableStorage = statFs.availableBlocksLong * statFs.blockSizeLong
         val usedStorage = totalStorage - availableStorage
 
+        val volumesList = mutableListOf<Map<String, Any?>>()
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                val storageManager = context.getSystemService(Context.STORAGE_SERVICE) as android.os.storage.StorageManager
+                for (volume in storageManager.storageVolumes) {
+                    val volumeMap = mutableMapOf<String, Any?>()
+                    volumeMap["name"] = volume.getDescription(context)
+                    volumeMap["isRemovable"] = volume.isRemovable
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                        volume.directory?.let { dir ->
+                            volumeMap["mountPath"] = dir.absolutePath
+                            try {
+                                val volStat = StatFs(dir.absolutePath)
+                                val volTotal = volStat.blockCountLong * volStat.blockSizeLong
+                                val volAvailable = volStat.availableBlocksLong * volStat.blockSizeLong
+                                volumeMap["totalCapacity"] = volTotal
+                                volumeMap["availableCapacity"] = volAvailable
+                                volumeMap["usedCapacity"] = volTotal - volAvailable
+                            } catch (e: Exception) {}
+                        }
+                    }
+                    if (!volumeMap.containsKey("totalCapacity")) {
+                        if (volume.isPrimary) {
+                            volumeMap["mountPath"] = Environment.getDataDirectory().absolutePath
+                            volumeMap["totalCapacity"] = totalStorage
+                            volumeMap["availableCapacity"] = availableStorage
+                            volumeMap["usedCapacity"] = usedStorage
+                        } else {
+                            volumeMap["totalCapacity"] = 0L
+                            volumeMap["availableCapacity"] = 0L
+                            volumeMap["usedCapacity"] = 0L
+                        }
+                    }
+                    volumeMap["deviceType"] = if (volume.isRemovable) "Removable" else "Fixed"
+                    volumesList.add(volumeMap)
+                }
+            }
+        } catch (e: Exception) {}
+
+        if (volumesList.isEmpty()) {
+            val volumeMap = mutableMapOf<String, Any?>()
+            volumeMap["name"] = "Internal Storage"
+            volumeMap["mountPath"] = Environment.getDataDirectory().absolutePath
+            volumeMap["totalCapacity"] = totalStorage
+            volumeMap["availableCapacity"] = availableStorage
+            volumeMap["usedCapacity"] = usedStorage
+            volumeMap["deviceType"] = "Fixed"
+            volumeMap["isRemovable"] = false
+            volumesList.add(volumeMap)
+        }
+        val storageInfo = mapOf("volumes" to volumesList)
+
         // Get CPU info
         val cpuInfo = getCpuInfo()
 
@@ -116,6 +168,7 @@ class FlutterDeviceInfoPlusPlugin : FlutterPlugin, MethodChannel.MethodCallHandl
                 "usedStorageSpace" to usedStorage,
                 "memoryUsagePercentage" to ((memInfo.totalMem - memInfo.availMem).toDouble() / memInfo.totalMem * 100)
             ),
+            "storageInfo" to storageInfo,
             "displayInfo" to mapOf(
                 "screenWidth" to displayMetrics.widthPixels,
                 "screenHeight" to displayMetrics.heightPixels,

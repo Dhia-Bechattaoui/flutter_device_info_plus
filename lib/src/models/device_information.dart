@@ -7,6 +7,7 @@ import 'network_info.dart';
 import 'processor_info.dart';
 import 'security_info.dart';
 import 'sensor_info.dart';
+import 'storage_info.dart';
 
 /// Comprehensive device information containing all available device details.
 ///
@@ -27,6 +28,7 @@ class DeviceInformation {
     required this.kernelVersion,
     required this.processorInfo,
     required this.memoryInfo,
+    required this.storageInfo,
     required this.displayInfo,
     required this.sensorInfo,
     required this.networkInfo,
@@ -65,8 +67,11 @@ class DeviceInformation {
   /// Detailed processor and CPU information.
   final ProcessorInfo processorInfo;
 
-  /// Memory and storage information.
+  /// Memory information.
   final MemoryInfo memoryInfo;
+
+  /// Storage volumes information.
+  final StorageInfo storageInfo;
 
   /// Display and screen information.
   final DisplayInfo displayInfo;
@@ -96,6 +101,7 @@ class DeviceInformation {
     final String? kernelVersion,
     final ProcessorInfo? processorInfo,
     final MemoryInfo? memoryInfo,
+    final StorageInfo? storageInfo,
     final DisplayInfo? displayInfo,
     final BatteryInfo? batteryInfo,
     final SensorInfo? sensorInfo,
@@ -113,6 +119,7 @@ class DeviceInformation {
     kernelVersion: kernelVersion ?? this.kernelVersion,
     processorInfo: processorInfo ?? this.processorInfo,
     memoryInfo: memoryInfo ?? this.memoryInfo,
+    storageInfo: storageInfo ?? this.storageInfo,
     displayInfo: displayInfo ?? this.displayInfo,
     batteryInfo: batteryInfo ?? this.batteryInfo,
     sensorInfo: sensorInfo ?? this.sensorInfo,
@@ -138,6 +145,7 @@ class DeviceInformation {
         other.kernelVersion == kernelVersion &&
         other.processorInfo == processorInfo &&
         other.memoryInfo == memoryInfo &&
+        other.storageInfo == storageInfo &&
         other.displayInfo == displayInfo &&
         other.batteryInfo == batteryInfo &&
         other.sensorInfo == sensorInfo &&
@@ -158,6 +166,7 @@ class DeviceInformation {
     kernelVersion,
     processorInfo,
     memoryInfo,
+    storageInfo,
     displayInfo,
     batteryInfo,
     sensorInfo,
@@ -179,6 +188,7 @@ class DeviceInformation {
       'kernelVersion: $kernelVersion, '
       'processorInfo: $processorInfo, '
       'memoryInfo: $memoryInfo, '
+      'storageInfo: $storageInfo, '
       'displayInfo: $displayInfo, '
       'batteryInfo: $batteryInfo, '
       'sensorInfo: $sensorInfo, '

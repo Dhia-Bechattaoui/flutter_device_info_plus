@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-07-22
+
+### Added
+- **Storage Volumes**: Separated RAM and Storage information. Added `StorageInfo` and `StorageVolume` models to `DeviceInformation` to support multiple logical disks, SD cards, and USB drives. (Thanks to @mengzhidaren for the suggestion).
+- **Windows Storage**: Implemented native Windows API querying to detect individual mount paths, types (e.g. fixed, removable), and capabilities of all local disks.
+- **Android Storage**: Integrated `StorageManager` to return metrics for all mounted volumes including internal storage and external SD cards/USB media.
+- **iOS/macOS Storage**: Refactored existing capacity logic to correctly output to the new `StorageInfo` volume layout.
+- **Web Storage**: Connected the browser sandbox quota API to populate web storage usage information as a standard volume.
+
+### Changed
+- **Memory Info**: Deprecated `totalStorageSpace`, `availableStorageSpace`, and `usedStorageSpace` in the `MemoryInfo` class to firmly dedicate it to RAM.
+
+### Fixed
+- **Windows**: Addressed an edge-case bug where the battery level would falsely report as `255%` on desktop machines without physical batteries.
+
 ## [0.4.0] - 2026-06-05
 
 ### Added

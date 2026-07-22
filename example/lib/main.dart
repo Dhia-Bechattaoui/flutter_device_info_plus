@@ -81,10 +81,15 @@ class _DeviceInfoScreenState extends State<DeviceInfoScreen> {
       debugPrint('--- Memory ---');
       debugPrint('Total RAM: ${deviceInfo.memoryInfo.totalPhysicalMemory}');
       debugPrint('Avail RAM: ${deviceInfo.memoryInfo.availablePhysicalMemory}');
-      debugPrint('Total Storage: ${deviceInfo.memoryInfo.totalStorageSpace}');
-      debugPrint(
-        'Avail Storage: ${deviceInfo.memoryInfo.availableStorageSpace}',
-      );
+
+      debugPrint('--- Storage Volumes ---');
+      for (final vol in deviceInfo.storageInfo.volumes) {
+        debugPrint('Volume: ${vol.name ?? vol.mountPath}');
+        debugPrint('  Mount: ${vol.mountPath}');
+        debugPrint('  Total: ${vol.totalCapacity}');
+        debugPrint('  Available: ${vol.availableCapacity}');
+        debugPrint('  Removable: ${vol.isRemovable}');
+      }
 
       debugPrint('--- Display ---');
       debugPrint(
@@ -398,7 +403,8 @@ class _DeviceInfoScreenState extends State<DeviceInfoScreen> {
 
   List<_InfoItem> _buildMemoryItems(final DeviceInformation info) {
     final mem = info.memoryInfo;
-    return [
+
+    final items = [
       _InfoItem(
         'Total RAM',
         '${mem.totalPhysicalMemoryMB.toStringAsFixed(0)} MB',
@@ -408,18 +414,27 @@ class _DeviceInfoScreenState extends State<DeviceInfoScreen> {
         '${mem.availablePhysicalMemoryMB.toStringAsFixed(0)} MB',
       ),
       _InfoItem(
-        'Total Storage',
-        '${mem.totalStorageSpaceGB.toStringAsFixed(1)} GB',
-      ),
-      _InfoItem(
-        'Available Storage',
-        '${mem.availableStorageSpaceGB.toStringAsFixed(1)} GB',
-      ),
-      _InfoItem(
         'Memory Usage',
         '${mem.memoryUsagePercentage.toStringAsFixed(1)}%',
       ),
     ];
+
+    for (var i = 0; i < info.storageInfo.volumes.length; i++) {
+      final vol = info.storageInfo.volumes[i];
+      final name = vol.name ?? vol.mountPath ?? 'Volume ${i + 1}';
+      final totalGB = (vol.totalCapacity / (1024 * 1024 * 1024))
+          .toStringAsFixed(1);
+      final availGB = (vol.availableCapacity / (1024 * 1024 * 1024))
+          .toStringAsFixed(1);
+
+      items.add(_InfoItem('Storage ($name)', '$totalGB GB ($availGB GB free)'));
+    }
+
+    if (info.storageInfo.volumes.isEmpty) {
+      items.add(const _InfoItem('Storage', 'No volumes found'));
+    }
+
+    return items;
   }
 
   List<_InfoItem> _buildDisplayItems(final DeviceInformation info) {

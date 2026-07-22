@@ -9,3 +9,5 @@ export 'network_info.dart';
 export 'processor_info.dart';
 export 'security_info.dart';
 export 'sensor_info.dart';
+export 'storage_info.dart';
+export 'storage_volume.dart';

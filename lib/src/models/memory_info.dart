@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use_from_same_package, document_ignores
+
 import 'package:flutter/foundation.dart';
 
 /// Information about the device's memory and storage.
@@ -9,10 +11,13 @@ class MemoryInfo {
   const MemoryInfo({
     required this.totalPhysicalMemory,
     required this.availablePhysicalMemory,
-    required this.totalStorageSpace,
-    required this.availableStorageSpace,
-    required this.usedStorageSpace,
     required this.memoryUsagePercentage,
+    @Deprecated('Use DeviceInformation.storageInfo instead')
+    this.totalStorageSpace = 0,
+    @Deprecated('Use DeviceInformation.storageInfo instead')
+    this.availableStorageSpace = 0,
+    @Deprecated('Use DeviceInformation.storageInfo instead')
+    this.usedStorageSpace = 0,
   });
 
   /// Total physical RAM in bytes.
@@ -22,12 +27,15 @@ class MemoryInfo {
   final int availablePhysicalMemory;
 
   /// Total storage space in bytes.
+  @Deprecated('Use DeviceInformation.storageInfo instead')
   final int totalStorageSpace;
 
   /// Available storage space in bytes.
+  @Deprecated('Use DeviceInformation.storageInfo instead')
   final int availableStorageSpace;
 
   /// Used storage space in bytes.
+  @Deprecated('Use DeviceInformation.storageInfo instead')
   final int usedStorageSpace;
 
   /// Current memory usage as a percentage (0-100).
@@ -41,16 +49,20 @@ class MemoryInfo {
       availablePhysicalMemory / (1024 * 1024);
 
   /// Gets total storage space in gigabytes.
+  @Deprecated('Use DeviceInformation.storageInfo instead')
   double get totalStorageSpaceGB => totalStorageSpace / (1024 * 1024 * 1024);
 
   /// Gets available storage space in gigabytes.
+  @Deprecated('Use DeviceInformation.storageInfo instead')
   double get availableStorageSpaceGB =>
       availableStorageSpace / (1024 * 1024 * 1024);
 
   /// Gets used storage space in gigabytes.
+  @Deprecated('Use DeviceInformation.storageInfo instead')
   double get usedStorageSpaceGB => usedStorageSpace / (1024 * 1024 * 1024);
 
   /// Gets storage usage as a percentage (0-100).
+  @Deprecated('Use DeviceInformation.storageInfo instead')
   double get storageUsagePercentage =>
       totalStorageSpace > 0 ? (usedStorageSpace / totalStorageSpace) * 100 : 0;
 
