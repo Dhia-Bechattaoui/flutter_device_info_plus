@@ -1,8 +1,4 @@
-/// Web platform implementation for flutter_device_info_plus
-///
-/// This library provides device information retrieval capabilities
-/// for web platforms using browser APIs and user agent parsing.
-library;
+// ignore_for_file: deprecated_member_use_from_same_package, document_ignores
 
 import 'dart:async';
 import 'dart:js_interop';
@@ -59,6 +55,7 @@ class FlutterDeviceInfoPlusPlugin extends FlutterDeviceInfoPlusPlatform {
         hardwareConcurrency,
       ),
       memoryInfo: await _getMemoryInfoAsync(),
+      storageInfo: await _getStorageInfoAsync(),
       displayInfo: DisplayInfo(
         screenWidth: screenWidth,
         screenHeight: screenHeight,
@@ -204,6 +201,44 @@ class FlutterDeviceInfoPlusPlugin extends FlutterDeviceInfoPlusPlatform {
       usedStorageSpace: (totalStorageGB - availableStorageGB).toInt(),
       memoryUsagePercentage: 0,
     );
+  }
+
+  Future<StorageInfo> _getStorageInfoAsync() async {
+    final navigator = web.window.navigator;
+    var totalStorageGB = 0.0;
+    var availableStorageGB = 0.0;
+
+    try {
+      final storageManager = (navigator as NavigatorWithStorage).storage;
+      final estimate = await storageManager.estimate().toDart;
+      final quota = estimate.quota;
+      final usage = estimate.usage;
+
+      if (quota != null) {
+        totalStorageGB = quota.toDouble();
+        if (usage != null) {
+          availableStorageGB = (quota - usage).toDouble();
+        } else {
+          availableStorageGB = totalStorageGB;
+        }
+      }
+    } on Object catch (_) {
+      // StorageManager not supported or error
+    }
+
+    final usedStorageGB = totalStorageGB - availableStorageGB;
+
+    final volume = StorageVolume(
+      name: 'Browser Storage',
+      mountPath: 'Origin',
+      totalCapacity: totalStorageGB.toInt(),
+      availableCapacity: availableStorageGB.toInt(),
+      usedCapacity: usedStorageGB.toInt(),
+      deviceType: 'Sandbox',
+      isRemovable: false,
+    );
+
+    return StorageInfo(volumes: [volume]);
   }
 
   @override

@@ -273,6 +273,59 @@ flutter::EncodableMap FlutterDeviceInfoPlusPlugin::GetDeviceInfo() {
       flutter::EncodableValue(totalMem > 0 ? ((totalMem - availMem) * 100.0 / totalMem) : 0.0);
   deviceInfo[flutter::EncodableValue("memoryInfo")] = flutter::EncodableValue(memoryInfo);
   
+  // Storage Info Configuration
+  flutter::EncodableMap storageInfo;
+  flutter::EncodableList volumesList;
+  DWORD drives = GetLogicalDrives();
+  for (int i = 0; i < 26; i++) {
+    if (drives & (1 << i)) {
+      char rootPath[] = {(char)('A' + i), ':', '\\', '\0'};
+      UINT driveType = GetDriveTypeA(rootPath);
+      
+      flutter::EncodableMap volume;
+      volume[flutter::EncodableValue("mountPath")] = flutter::EncodableValue(std::string(rootPath));
+      
+      char volumeName[MAX_PATH + 1] = {0};
+      if (GetVolumeInformationA(rootPath, volumeName, MAX_PATH + 1, NULL, NULL, NULL, NULL, 0)) {
+        std::string volStr = std::string(volumeName);
+        if (volStr.empty()) {
+            volStr = "Local Disk";
+        }
+        volume[flutter::EncodableValue("name")] = flutter::EncodableValue(volStr);
+      } else {
+        volume[flutter::EncodableValue("name")] = flutter::EncodableValue(std::string("Local Disk"));
+      }
+
+      ULARGE_INTEGER freeBytes, totalBytes;
+      if (GetDiskFreeSpaceExA(rootPath, &freeBytes, &totalBytes, NULL)) {
+        volume[flutter::EncodableValue("totalCapacity")] = flutter::EncodableValue((int64_t)totalBytes.QuadPart);
+        volume[flutter::EncodableValue("availableCapacity")] = flutter::EncodableValue((int64_t)freeBytes.QuadPart);
+        volume[flutter::EncodableValue("usedCapacity")] = flutter::EncodableValue((int64_t)(totalBytes.QuadPart - freeBytes.QuadPart));
+      } else {
+        volume[flutter::EncodableValue("totalCapacity")] = flutter::EncodableValue((int64_t)0);
+        volume[flutter::EncodableValue("availableCapacity")] = flutter::EncodableValue((int64_t)0);
+        volume[flutter::EncodableValue("usedCapacity")] = flutter::EncodableValue((int64_t)0);
+      }
+      
+      std::string devTypeStr = "Unknown";
+      bool isRemovable = false;
+      switch(driveType) {
+        case DRIVE_REMOVABLE: devTypeStr = "Removable"; isRemovable = true; break;
+        case DRIVE_FIXED: devTypeStr = "Fixed"; break;
+        case DRIVE_REMOTE: devTypeStr = "Network"; break;
+        case DRIVE_CDROM: devTypeStr = "CD-ROM"; isRemovable = true; break;
+        case DRIVE_RAMDISK: devTypeStr = "RAM Disk"; break;
+      }
+      volume[flutter::EncodableValue("deviceType")] = flutter::EncodableValue(devTypeStr);
+      volume[flutter::EncodableValue("isRemovable")] = flutter::EncodableValue(isRemovable);
+
+      volumesList.push_back(flutter::EncodableValue(volume));
+    }
+  }
+  storageInfo[flutter::EncodableValue("volumes")] = flutter::EncodableValue(volumesList);
+  deviceInfo[flutter::EncodableValue("storageInfo")] = flutter::EncodableValue(storageInfo);
+
+  
   // Graphics display environment specifications mapping
   flutter::EncodableMap displayInfo;
   int width = GetScreenWidth();
@@ -310,6 +363,10 @@ flutter::EncodableMap FlutterDeviceInfoPlusPlugin::GetBatteryInfo() {
   
   SYSTEM_POWER_STATUS status;
   if (GetSystemPowerStatus(&status)) {
+    if (status.BatteryLifePercent == 255) {
+      // 255 indicates that system has no battery (e.g. desktop PC) or is unknown.
+      return flutter::EncodableMap();
+    }
     batteryInfo[flutter::EncodableValue("batteryLevel")] = flutter::EncodableValue((int)status.BatteryLifePercent);
     std::string chargingStatus = "unknown";
     if (status.ACLineStatus == 1) {

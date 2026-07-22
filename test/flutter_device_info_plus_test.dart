@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use_from_same_package, document_ignores
+
 import 'package:flutter_device_info_plus/flutter_device_info_plus.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -122,6 +124,7 @@ void main() {
           usedStorageSpace: 549755813888,
           memoryUsagePercentage: 50,
         ),
+        storageInfo: StorageInfo(volumes: []),
         displayInfo: DisplayInfo(
           screenWidth: 1920,
           screenHeight: 1080,
@@ -185,6 +188,7 @@ void main() {
           usedStorageSpace: 549755813888,
           memoryUsagePercentage: 50,
         ),
+        storageInfo: StorageInfo(volumes: []),
         displayInfo: DisplayInfo(
           screenWidth: 1920,
           screenHeight: 1080,
@@ -247,6 +251,7 @@ void main() {
           usedStorageSpace: 549755813888,
           memoryUsagePercentage: 50,
         ),
+        storageInfo: StorageInfo(volumes: []),
         displayInfo: DisplayInfo(
           screenWidth: 1920,
           screenHeight: 1080,
@@ -297,6 +302,7 @@ void main() {
           usedStorageSpace: 549755813888,
           memoryUsagePercentage: 50,
         ),
+        storageInfo: StorageInfo(volumes: []),
         displayInfo: DisplayInfo(
           screenWidth: 1920,
           screenHeight: 1080,

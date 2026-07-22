@@ -45,6 +45,9 @@ public class FlutterDeviceInfoPlusPlugin: NSObject, FlutterPlugin {
     // Get memory info
     var memoryInfo = getMemoryInfo()
     
+    // Get storage info
+    var storageInfo = getStorageInfo()
+    
     // Get display info
     var displayInfo = getDisplayInfo()
     
@@ -65,6 +68,7 @@ public class FlutterDeviceInfoPlusPlugin: NSObject, FlutterPlugin {
       "kernelVersion": getKernelVersion(),
       "processorInfo": processorInfo,
       "memoryInfo": memoryInfo,
+      "storageInfo": storageInfo,
       "displayInfo": displayInfo,
       "securityInfo": securityInfo
     ]
@@ -216,6 +220,37 @@ public class FlutterDeviceInfoPlusPlugin: NSObject, FlutterPlugin {
       "availableStorageSpace": availableStorage,
       "usedStorageSpace": usedStorage,
       "memoryUsagePercentage": memoryUsagePercentage
+    ]
+  }
+  
+  private func getStorageInfo() -> [String: Any] {
+    let fileManager = FileManager.default
+    var totalStorage: Int64 = 0
+    var availableStorage: Int64 = 0
+    
+    if let attributes = try? fileManager.attributesOfFileSystem(forPath: NSHomeDirectory()) {
+      if let totalSize = attributes[.systemSize] as? NSNumber {
+        totalStorage = totalSize.int64Value
+      }
+      if let freeSize = attributes[.systemFreeSize] as? NSNumber {
+        availableStorage = freeSize.int64Value
+      }
+    }
+    
+    let usedStorage = totalStorage - availableStorage
+    
+    let volume: [String: Any] = [
+      "name": "Internal Storage",
+      "mountPath": NSHomeDirectory(),
+      "totalCapacity": totalStorage,
+      "availableCapacity": availableStorage,
+      "usedCapacity": usedStorage,
+      "deviceType": "Fixed",
+      "isRemovable": false
+    ]
+    
+    return [
+      "volumes": [volume]
     ]
   }
   

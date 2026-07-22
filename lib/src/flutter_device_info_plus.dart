@@ -1,6 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+// ignore_for_file: deprecated_member_use_from_same_package,
+// ignore_for_file: avoid_redundant_argument_values
+// ignore_for_file: avoid_annotating_with_dynamic, document_ignores
+
 import 'package:flutter/services.dart';
 
 import 'exceptions.dart';
@@ -64,6 +68,9 @@ class FlutterDeviceInfoPlus {
         ),
         memoryInfo: _parseMemoryInfo(
           data['memoryInfo'] as Map<dynamic, dynamic>?,
+        ),
+        storageInfo: _parseStorageInfo(
+          data['storageInfo'] as Map<dynamic, dynamic>?,
         ),
         displayInfo: _parseDisplayInfo(
           data['displayInfo'] as Map<dynamic, dynamic>?,
@@ -233,6 +240,28 @@ class FlutterDeviceInfoPlus {
       memoryUsagePercentage:
           (data['memoryUsagePercentage'] as num?)?.toDouble() ?? 0.0,
     );
+  }
+
+  StorageInfo _parseStorageInfo(final Map<dynamic, dynamic>? data) {
+    if (data == null || !data.containsKey('volumes')) {
+      return const StorageInfo(volumes: []);
+    }
+
+    final volumesList = data['volumes'] as List<dynamic>? ?? [];
+    final volumes = volumesList.map((final dynamic v) {
+      final volData = v as Map<dynamic, dynamic>;
+      return StorageVolume(
+        name: volData['name'] as String?,
+        mountPath: volData['mountPath'] as String?,
+        totalCapacity: (volData['totalCapacity'] as num?)?.toInt() ?? 0,
+        availableCapacity: (volData['availableCapacity'] as num?)?.toInt() ?? 0,
+        usedCapacity: (volData['usedCapacity'] as num?)?.toInt() ?? 0,
+        deviceType: volData['deviceType'] as String?,
+        isRemovable: volData['isRemovable'] as bool? ?? false,
+      );
+    }).toList();
+
+    return StorageInfo(volumes: volumes);
   }
 
   DisplayInfo _parseDisplayInfo(final Map<dynamic, dynamic>? data) {
