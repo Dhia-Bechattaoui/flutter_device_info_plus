@@ -463,15 +463,13 @@ flutter::EncodableMap FlutterDeviceInfoPlusPlugin::GetNetworkInfo() {
     std::string networkSpeed = "Unknown";
     std::string ipAddress = "Unknown";
     std::string macAddress = "Unknown";
+    bool isVpn = false;
 
-    ULONG bufferSize = 15000; // Allocate a solid safety initial table buffer size
+    ULONG bufferSize = 15000;
     std::vector<BYTE> buffer(bufferSize);
     PIP_ADAPTER_ADDRESSES adapters = reinterpret_cast<PIP_ADAPTER_ADDRESSES>(buffer.data());
 
-    // Request IPv4 adapter details exclusively to avoid local tunnel pollution
     ULONG result = GetAdaptersAddresses(AF_INET, GAA_FLAG_INCLUDE_GATEWAYS, nullptr, adapters, &bufferSize);
-    
-    // Resize vector explicitly if the framework flags an unexpected buffer threshold crash
     if (result == ERROR_BUFFER_OVERFLOW) {
         buffer.resize(bufferSize);
         adapters = reinterpret_cast<PIP_ADAPTER_ADDRESSES>(buffer.data());
@@ -479,66 +477,108 @@ flutter::EncodableMap FlutterDeviceInfoPlusPlugin::GetNetworkInfo() {
     }
 
     if (result == NO_ERROR) {
+        PIP_ADAPTER_ADDRESSES bestAdapter = nullptr;
+        int maxPriority = -1; // 3 = Physical, 2 = VPN, 1 = Virtual, 0 = Other
+
         PIP_ADAPTER_ADDRESSES adapter = adapters;
         while (adapter != nullptr) {
-            // Target only running adaptors bound directly to a valid network path configuration
-            if (adapter->OperStatus == IfOperStatusUp && adapter->FirstGatewayAddress != nullptr) {
-                
-                // 1. DETERMINE HARDWARE MEDIUM TYPE
-                if (adapter->IfType == IF_TYPE_ETHERNET_CSMACD) {
-                    connectionType = "ethernet";
-                } else if (adapter->IfType == IF_TYPE_IEEE80211) {
-                    connectionType = "wifi";
-                } else if (adapter->IfType == IF_TYPE_WWANPP || adapter->IfType == IF_TYPE_WWANPP2) {
-                    connectionType = "cellular";
-                } else if (adapter->IfType == IF_TYPE_SOFTWARE_LOOPBACK) {
-                    adapter = adapter->Next;
-                    continue; // Discard localhost adapter interfaces
-                } else {
-                    connectionType = "other";
+            if (adapter->IfType == IF_TYPE_SOFTWARE_LOOPBACK) {
+                adapter = adapter->Next;
+                continue;
+            }
+
+            if (adapter->OperStatus == IfOperStatusUp) {
+                // Check if this adapter is a VPN or virtual adapter
+                std::wstring desc = adapter->Description ? adapter->Description : L"";
+                std::wstring name = adapter->FriendlyName ? adapter->FriendlyName : L"";
+                std::string descStr = Utf8FromWide(desc);
+                std::string nameStr = Utf8FromWide(name);
+                for (char &c : descStr) c = static_cast<char>(toupper(static_cast<unsigned char>(c)));
+                for (char &c : nameStr) c = static_cast<char>(toupper(static_cast<unsigned char>(c)));
+
+                bool adapterIsVpn = (adapter->IfType == IF_TYPE_PPP || adapter->IfType == IF_TYPE_TUNNEL || adapter->IfType == IF_TYPE_PROP_VIRTUAL);
+                const char* vpnKeywords[] = {"VPN", "WIREGUARD", "TAP-WINDOWS", "OPENVPN", "TAILSCALE", "CISCO", "NORDVPN", "TUNNEL", "FORTINET", "PANGP"};
+                for (const char* kw : vpnKeywords) {
+                    if (descStr.find(kw) != std::string::npos || nameStr.find(kw) != std::string::npos) {
+                        adapterIsVpn = true;
+                        break;
+                    }
+                }
+                if (adapterIsVpn) {
+                    isVpn = true;
                 }
 
-                // 2. COMPUTE SYSTEM LINK TRANSMISSION SPEED
-                ULONGLONG speedBps = adapter->ReceiveLinkSpeed;
-                if (speedBps > 0 && speedBps != MAXULONGLONG) {
-                    if (speedBps >= 1000000000ULL) {
-                        double speedGbps = static_cast<double>(speedBps) / 1000000000.0;
-                        networkSpeed = std::to_string(static_cast<int>(speedGbps)) + " Gbps";
-                    } else {
-                        double speedMbps = static_cast<double>(speedBps) / 1000000.0;
-                        networkSpeed = std::to_string(static_cast<int>(speedMbps)) + " Mbps";
+                bool adapterIsVirtual = false;
+                const char* virtKeywords[] = {"VMWARE", "VIRTUALBOX", "HYPER-V", "VETHERNET", "WSL", "HOST-ONLY", "DOCKER", "VIRTUAL DEVICE"};
+                for (const char* kw : virtKeywords) {
+                    if (descStr.find(kw) != std::string::npos || nameStr.find(kw) != std::string::npos) {
+                        adapterIsVirtual = true;
+                        break;
                     }
                 }
 
-                // 3. EXTRACT THE IPV4 ADDRESS VALUE
-                if (adapter->FirstUnicastAddress != nullptr) {
-                    sockaddr_in* sockaddr_ipv4 = reinterpret_cast<sockaddr_in*>(adapter->FirstUnicastAddress->Address.lpSockaddr);
-                    char ipBuffer[INET_ADDRSTRLEN];
-                    if (InetNtopA(AF_INET, &(sockaddr_ipv4->sin_addr), ipBuffer, INET_ADDRSTRLEN) != nullptr) {
-                        ipAddress = std::string(ipBuffer);
-                    }
+                // Assign priority score
+                int priority = 0;
+                if (!adapterIsVirtual && !adapterIsVpn) {
+                    priority = (adapter->FirstGatewayAddress != nullptr) ? 3 : 2;
+                } else if (adapterIsVpn) {
+                    priority = 2;
+                } else if (adapterIsVirtual) {
+                    priority = 1;
                 }
 
-                // 4. FORMAT PHYSICAL ADDRESS BYTE SEQUENCES INTO COLON-SEPARATED MAC STRINGS
-                if (adapter->PhysicalAddressLength > 0) {
-                    std::stringstream macStream;
-                    for (ULONG i = 0; i < adapter->PhysicalAddressLength; ++i) {
-                        macStream << std::setw(2) << std::setfill('0') << std::hex << std::uppercase 
-                                  << static_cast<int>(adapter->PhysicalAddress[i]);
-                        if (i < adapter->PhysicalAddressLength - 1) {
-                            macStream << ":";
-                        }
-                    }
-                    macAddress = macStream.str();
+                if (priority > maxPriority && adapter->FirstUnicastAddress != nullptr) {
+                    maxPriority = priority;
+                    bestAdapter = adapter;
                 }
-                
-                break; // Break loop execution as soon as the main active interface info is caught
             }
             adapter = adapter->Next;
         }
+
+        if (bestAdapter != nullptr) {
+            if (bestAdapter->IfType == IF_TYPE_ETHERNET_CSMACD) {
+                connectionType = "ethernet";
+            } else if (bestAdapter->IfType == IF_TYPE_IEEE80211) {
+                connectionType = "wifi";
+            } else if (bestAdapter->IfType == IF_TYPE_WWANPP || bestAdapter->IfType == IF_TYPE_WWANPP2) {
+                connectionType = "cellular";
+            } else {
+                connectionType = "other";
+            }
+
+            ULONGLONG speedBps = bestAdapter->ReceiveLinkSpeed;
+            if (speedBps > 0 && speedBps != MAXULONGLONG) {
+                if (speedBps >= 1000000000ULL) {
+                    double speedGbps = static_cast<double>(speedBps) / 1000000000.0;
+                    networkSpeed = std::to_string(static_cast<int>(speedGbps)) + " Gbps";
+                } else {
+                    double speedMbps = static_cast<double>(speedBps) / 1000000.0;
+                    networkSpeed = std::to_string(static_cast<int>(speedMbps)) + " Mbps";
+                }
+            }
+
+            if (bestAdapter->FirstUnicastAddress != nullptr) {
+                sockaddr_in* sockaddr_ipv4 = reinterpret_cast<sockaddr_in*>(bestAdapter->FirstUnicastAddress->Address.lpSockaddr);
+                char ipBuffer[INET_ADDRSTRLEN];
+                if (InetNtopA(AF_INET, &(sockaddr_ipv4->sin_addr), ipBuffer, INET_ADDRSTRLEN) != nullptr) {
+                    ipAddress = std::string(ipBuffer);
+                }
+            }
+
+            if (bestAdapter->PhysicalAddressLength > 0) {
+                std::stringstream macStream;
+                for (ULONG i = 0; i < bestAdapter->PhysicalAddressLength; ++i) {
+                    macStream << std::setw(2) << std::setfill('0') << std::hex << std::uppercase 
+                              << static_cast<int>(bestAdapter->PhysicalAddress[i]);
+                    if (i < bestAdapter->PhysicalAddressLength - 1) {
+                        macStream << ":";
+                    }
+                }
+                macAddress = macStream.str();
+            }
+        }
     }
 
-    // Guard against blank entries, unassigned slots, zero fallbacks, and APIPA autoconfig allocations (169.254.x.x)
     bool isConnected = (!ipAddress.empty() && 
                         ipAddress != "Unknown" && 
                         ipAddress != "0.0.0.0" && 
@@ -549,6 +589,7 @@ flutter::EncodableMap FlutterDeviceInfoPlusPlugin::GetNetworkInfo() {
     networkInfo[flutter::EncodableValue("networkSpeed")]   = flutter::EncodableValue(std::string(networkSpeed));
     networkInfo[flutter::EncodableValue("ipAddress")]      = flutter::EncodableValue(std::string(ipAddress));
     networkInfo[flutter::EncodableValue("macAddress")]     = flutter::EncodableValue(std::string(macAddress));
+    networkInfo[flutter::EncodableValue("isVpn")]          = flutter::EncodableValue(isVpn);
 
     return networkInfo;
 }

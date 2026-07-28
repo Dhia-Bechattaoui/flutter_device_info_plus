@@ -671,6 +671,23 @@ static FlValue* GetSensorInfo() {
   return sensorInfo;
 }
 
+static bool IsVpnActive() {
+  struct ifaddrs *ifaddr, *ifa;
+  bool isVpn = false;
+  if (getifaddrs(&ifaddr) == 0) {
+    for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
+      if (ifa->ifa_name == NULL) continue;
+      std::string name = ifa->ifa_name;
+      if (StartsWith(name, "tun") || StartsWith(name, "tap") || StartsWith(name, "ppp") || StartsWith(name, "wg")) {
+        isVpn = true;
+        break;
+      }
+    }
+    freeifaddrs(ifaddr);
+  }
+  return isVpn;
+}
+
 // Get network info
 static FlValue* GetNetworkInfo() {
   FlValue* networkInfo = CreateMapValue();
@@ -680,6 +697,7 @@ static FlValue* GetNetworkInfo() {
   std::string macAddress = GetMACAddress();
   std::string connectionType = GetConnectionTypeByInterface(activeInterface);
   std::string networkSpeed = GetNetworkSpeedByInterface(activeInterface);
+  bool isVpn = IsVpnActive();
   
   SetMapValue(networkInfo, "connectionType", CreateStringValue(connectionType));
   SetMapValue(networkInfo, "networkSpeed", CreateStringValue(networkSpeed));
@@ -689,6 +707,7 @@ static FlValue* GetNetworkInfo() {
       CreateBoolValue(!activeInterface.empty() && !ipAddress.empty() && ipAddress != "unknown"));
   SetMapValue(networkInfo, "ipAddress", CreateStringValue(ipAddress));
   SetMapValue(networkInfo, "macAddress", CreateStringValue(macAddress));
+  SetMapValue(networkInfo, "isVpn", CreateBoolValue(isVpn));
   
   return networkInfo;
 }

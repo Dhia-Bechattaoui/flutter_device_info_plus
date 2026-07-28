@@ -425,12 +425,14 @@ void main() {
         networkSpeed: '100 Mbps',
         isConnected: true,
         ipAddress: '192.168.1.100',
+        isVpn: true,
       );
 
       expect(network.isWifiConnected, true);
       expect(network.isMobileConnected, false);
       expect(network.isEthernetConnected, false);
       expect(network.isOffline, false);
+      expect(network.isVpn, true);
     });
 
     test('SecurityInfo should calculate security score correctly', () {

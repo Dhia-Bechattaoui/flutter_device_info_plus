@@ -12,6 +12,7 @@ class NetworkInfo {
     required this.networkSpeed,
     required this.isConnected,
     required this.ipAddress,
+    this.isVpn = false,
   });
 
   /// Type of network connection ('wifi', 'mobile', 'ethernet', 'none').
@@ -25,6 +26,9 @@ class NetworkInfo {
 
   /// Current IP address of the device.
   final String ipAddress;
+
+  /// Whether the network connection is through a VPN.
+  final bool isVpn;
 
   /// Whether the device is connected via WiFi.
   bool get isWifiConnected => connectionType == 'wifi';
@@ -44,11 +48,13 @@ class NetworkInfo {
     final String? networkSpeed,
     final bool? isConnected,
     final String? ipAddress,
+    final bool? isVpn,
   }) => NetworkInfo(
     connectionType: connectionType ?? this.connectionType,
     networkSpeed: networkSpeed ?? this.networkSpeed,
     isConnected: isConnected ?? this.isConnected,
     ipAddress: ipAddress ?? this.ipAddress,
+    isVpn: isVpn ?? this.isVpn,
   );
 
   @override
@@ -61,12 +67,13 @@ class NetworkInfo {
         other.connectionType == connectionType &&
         other.networkSpeed == networkSpeed &&
         other.isConnected == isConnected &&
-        other.ipAddress == ipAddress;
+        other.ipAddress == ipAddress &&
+        other.isVpn == isVpn;
   }
 
   @override
   int get hashCode =>
-      Object.hash(connectionType, networkSpeed, isConnected, ipAddress);
+      Object.hash(connectionType, networkSpeed, isConnected, ipAddress, isVpn);
 
   @override
   String toString() =>
@@ -74,6 +81,7 @@ class NetworkInfo {
       'connectionType: $connectionType, '
       'networkSpeed: $networkSpeed, '
       'isConnected: $isConnected, '
-      'ipAddress: $ipAddress'
+      'ipAddress: $ipAddress, '
+      'isVpn: $isVpn'
       ')';
 }

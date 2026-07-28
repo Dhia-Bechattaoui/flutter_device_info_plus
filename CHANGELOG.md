@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-07-28
+
+### Added
+- **VPN Detection**: Added cross-platform `isVpn` boolean flag to `NetworkInfo` to detect active VPN connections on Windows, Android, iOS, macOS, and Linux.
+
+### Fixed
+- **Windows UTF-8 Encoding**: Converted all Windows string retrieval APIs to Win32 Unicode (`W`) functions with UTF-8 conversion helpers (`Utf8FromWide` / `Utf8FromSystemEncoding`) for hostnames, disk volume names, CPU names, and SMBIOS tables. (Thanks to @mengzhidaren - PR #10).
+- **Windows SMBIOS Safety**: Added boundary checks to SMBIOS table iteration to prevent memory safety issues with non-standard firmware data.
+- **Windows Network Filtering**: Prioritized physical Wi-Fi/Ethernet adapters over virtual network adapters (such as VMware, VirtualBox, Hyper-V, WSL, and Docker interfaces) to ensure the primary IP address is accurately retrieved.
+
 ## [0.5.0] - 2026-07-22
 
 ### Added

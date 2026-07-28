@@ -540,12 +540,15 @@ class FlutterDeviceInfoPlusPlugin : FlutterPlugin, MethodChannel.MethodCallHandl
             else -> "Unknown"
         }
 
+        val isVpn = capabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN)
+
         return mapOf(
             "connectionType" to connectionType,
             "networkSpeed" to networkSpeed,
             "isConnected" to isConnected,
             "ipAddress" to ipAddress,
-            "macAddress" to macAddress
+            "macAddress" to macAddress,
+            "isVpn" to isVpn
         )
     }
 
@@ -555,7 +558,8 @@ class FlutterDeviceInfoPlusPlugin : FlutterPlugin, MethodChannel.MethodCallHandl
             "networkSpeed" to "Unknown",
             "isConnected" to false,
             "ipAddress" to "unknown",
-            "macAddress" to "unknown"
+            "macAddress" to "unknown",
+            "isVpn" to false
         )
     }
 

@@ -367,9 +367,29 @@ public class FlutterDeviceInfoPlusPlugin: NSObject, FlutterPlugin {
       "networkSpeed": "Unknown",
       "isConnected": false,
       "ipAddress": "unknown",
-      "macAddress": "unknown"
+      "macAddress": "unknown",
+      "isVpn": false
     ]
     
+    // Check if VPN interface exists (utun, ppp, ipsec, tap, tun)
+    var isVpn = false
+    var ifaddr: UnsafeMutablePointer<ifaddrs>?
+    if getifaddrs(&ifaddr) == 0 {
+      var ptr = ifaddr
+      while ptr != nil {
+        defer { ptr = ptr?.pointee.ifa_next }
+        if let name = ptr?.pointee.ifa_name {
+          let ifName = String(cString: name)
+          if ifName.contains("utun") || ifName.contains("ppp") || ifName.contains("ipsec") || ifName.contains("tap") || ifName.contains("tun") {
+            isVpn = true
+            break
+          }
+        }
+      }
+      freeifaddrs(ifaddr)
+    }
+    networkInfo["isVpn"] = isVpn
+
     if #available(iOS 12.0, *) {
       let monitor = NWPathMonitor()
       let queue = DispatchQueue(label: "NetworkMonitor")

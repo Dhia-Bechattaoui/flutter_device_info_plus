@@ -189,6 +189,7 @@ class FlutterDeviceInfoPlus {
         networkSpeed: data['networkSpeed'] as String? ?? 'Unknown',
         isConnected: data['isConnected'] as bool? ?? false,
         ipAddress: data['ipAddress'] as String? ?? 'unknown',
+        isVpn: data['isVpn'] as bool? ?? false,
       );
     } catch (e) {
       throw DeviceInfoException('Failed to get network info: $e');

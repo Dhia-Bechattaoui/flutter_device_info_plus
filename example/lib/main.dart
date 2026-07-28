@@ -120,6 +120,7 @@ class _DeviceInfoScreenState extends State<DeviceInfoScreen> {
       debugPrint('Speed: ${networkInfo.networkSpeed}');
       debugPrint('Connected: ${networkInfo.isConnected}');
       debugPrint('IP: ${networkInfo.ipAddress}');
+      debugPrint('VPN: ${networkInfo.isVpn}');
 
       debugPrint('========== DEVICE INFO DEBUG END ==========');
 
@@ -380,6 +381,7 @@ class _DeviceInfoScreenState extends State<DeviceInfoScreen> {
                     _networkInfo!.isConnected ? 'Yes' : 'No',
                   ),
                   _InfoItem('IP Address', _networkInfo!.ipAddress),
+                  _InfoItem('VPN Active', _networkInfo!.isVpn ? 'Yes' : 'No'),
                   _InfoItem(
                     'WiFi',
                     _networkInfo!.connectionType == 'wifi' ? 'Yes' : 'No',
