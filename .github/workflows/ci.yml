@@ -16,7 +16,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          token: ${{ secrets.pub.dev || github.token }}
+          token: ${{ secrets.PAT_TOKEN || github.token }}
       
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
