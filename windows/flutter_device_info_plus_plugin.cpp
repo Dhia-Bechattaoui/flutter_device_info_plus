@@ -30,12 +30,47 @@
 #include <vector>
 #include <map>
 #include <string>
+#include <string_view>
 #include <iomanip>
 
 // Link-time static libraries for MSVC Compiler
 #pragma comment(lib, "iphlpapi.lib")
 #pragma comment(lib, "ws2_32.lib")
 #pragma comment(lib, "pdh.lib")
+
+namespace {
+
+// Flutter's StandardMessageCodec requires every std::string to contain UTF-8.
+// Windows Unicode APIs return UTF-16, so convert at the platform boundary.
+std::string Utf8FromWide(std::wstring_view value) {
+    if (value.empty()) return "";
+    const int utf8_size = WideCharToMultiByte(
+        CP_UTF8, 0, value.data(), static_cast<int>(value.size()), nullptr, 0,
+        nullptr, nullptr);
+    if (utf8_size <= 0) return "";
+
+    std::string utf8(utf8_size, '\0');
+    WideCharToMultiByte(CP_UTF8, 0, value.data(),
+                        static_cast<int>(value.size()), utf8.data(), utf8_size,
+                        nullptr, nullptr);
+    return utf8;
+}
+
+// SMBIOS strings are byte strings supplied by the firmware. Windows exposes
+// non-ASCII bytes through the active system code page, not as UTF-8.
+std::string Utf8FromSystemEncoding(std::string_view value) {
+    if (value.empty()) return "";
+    const int wide_size = MultiByteToWideChar(
+        CP_ACP, 0, value.data(), static_cast<int>(value.size()), nullptr, 0);
+    if (wide_size <= 0) return "";
+
+    std::wstring wide(wide_size, L'\0');
+    MultiByteToWideChar(CP_ACP, 0, value.data(),
+                        static_cast<int>(value.size()), wide.data(), wide_size);
+    return Utf8FromWide(wide);
+}
+
+}  // namespace
 
 namespace flutter_device_info_plus {
 
@@ -55,24 +90,39 @@ struct SMBIOS_Type1 {
     BYTE SerialNumberIdx;
 };
 
+enum class SMBIOSField {
+    kManufacturer,
+    kProductName,
+};
+
 /**
  * Extracts a specific null-terminated string from the SMBIOS string pool area
  * based on its 1-based index assigned inside the hardware structure.
  */
-std::string GetSMBIOSStringData(BYTE* pStrings, BYTE index) {
+std::string GetSMBIOSStringData(const BYTE* strings, const BYTE* table_end,
+                                BYTE index) {
     if (index == 0) return "Unknown";
+
     while (--index > 0) {
-        while (*pStrings != 0) pStrings++;
-        pStrings++; // Step over the null terminator of the previous string
+        while (strings < table_end && *strings != 0) strings++;
+        if (strings >= table_end) return "Unknown";
+        strings++;  // Skip the previous string's null terminator.
     }
-    return std::string((char*)pStrings);
+
+    const BYTE* string_end = strings;
+    while (string_end < table_end && *string_end != 0) string_end++;
+    if (string_end >= table_end) return "Unknown";
+
+    const auto* begin = reinterpret_cast<const char*>(strings);
+    const auto length = static_cast<size_t>(string_end - strings);
+    return Utf8FromSystemEncoding(std::string_view(begin, length));
 }
 
 /**
  * Queries the local System Firmware Table ('RSMB') to fetch raw SMBIOS entries
  * and parses Type 1 structures to look up native desktop hardware information.
  */
-std::string QuerySMBIOSField(int fieldType) {
+std::string QuerySMBIOSField(SMBIOSField field) {
     std::string result = "";
     DWORD bufferSize = GetSystemFirmwareTable('RSMB', 0, nullptr, 0);
     
@@ -91,19 +141,20 @@ std::string QuerySMBIOSField(int fieldType) {
                     SMBIOS_Type1* type1 = (SMBIOS_Type1*)pData;
                     BYTE* pStrings = pData + header->Length;
 
-                    if (fieldType == 1) { // Extract Hardware Manufacturer / Brand
-                        result = GetSMBIOSStringData(pStrings, type1->ManufacturerIdx);
-                    } else if (fieldType == 2) { // Extract Hardware Product Model Name
-                        result = GetSMBIOSStringData(pStrings, type1->ProductNameIdx);
+                    if (field == SMBIOSField::kManufacturer) {
+                        result = GetSMBIOSStringData(pStrings, pEnd, type1->ManufacturerIdx);
+                    } else {
+                        result = GetSMBIOSStringData(pStrings, pEnd, type1->ProductNameIdx);
                     }
                     break; // Target block located and handled, break loop execution
                 }
 
                 // Advance over current block structures along with its variable-length string pool
                 pData += header->Length;
-                while (pData < pEnd && (*pData != 0 || *(pData + 1) != 0)) {
+                while (pData + 1 < pEnd && (*pData != 0 || *(pData + 1) != 0)) {
                     pData++;
                 }
+                if (pData + 1 >= pEnd) break;
                 pData += 2; // Jump over the double null-terminator sequence ending the pool
             }
         }
@@ -112,17 +163,17 @@ std::string QuerySMBIOSField(int fieldType) {
 }
 
 std::string GetWindowsManufacturer() {
-    std::string val = QuerySMBIOSField(1);
+    std::string val = QuerySMBIOSField(SMBIOSField::kManufacturer);
     return val.empty() ? "Microsoft" : val;
 }
 
 std::string GetWindowsModel() {
-    std::string val = QuerySMBIOSField(2);
+    std::string val = QuerySMBIOSField(SMBIOSField::kProductName);
     return val.empty() ? "Windows PC" : val;
 }
 
 std::string GetWindowsBrand() {
-    std::string val = QuerySMBIOSField(1);
+    std::string val = QuerySMBIOSField(SMBIOSField::kManufacturer);
     return val.empty() ? "Microsoft" : val;
 }
 
@@ -179,12 +230,15 @@ flutter::EncodableMap FlutterDeviceInfoPlusPlugin::GetDeviceInfo() {
   flutter::EncodableMap deviceInfo;
   
   // Basic device host name mapping
-  char computerName[MAX_COMPUTERNAME_LENGTH + 1];
-  DWORD size = sizeof(computerName);
-  GetComputerNameA(computerName, &size);
+  wchar_t computerName[MAX_COMPUTERNAME_LENGTH + 1] = {0};
+  DWORD size = MAX_COMPUTERNAME_LENGTH + 1;
+  const bool hasComputerName = GetComputerNameW(computerName, &size) != 0;
 
   deviceInfo[flutter::EncodableValue("deviceId")] = flutter::EncodableValue(GetDeviceId());
-  deviceInfo[flutter::EncodableValue("deviceName")] = flutter::EncodableValue(std::string(computerName));
+  deviceInfo[flutter::EncodableValue("deviceName")] = flutter::EncodableValue(
+      hasComputerName
+          ? Utf8FromWide(std::wstring_view(computerName, size))
+          : "Unknown");
   
   // Dynamic linking to RtlGetVersion to bypass application manifest compatibility shims
   typedef NTSTATUS (WINAPI *RtlGetVersionPtr)(PRTL_OSVERSIONINFOEXW);
@@ -279,15 +333,16 @@ flutter::EncodableMap FlutterDeviceInfoPlusPlugin::GetDeviceInfo() {
   DWORD drives = GetLogicalDrives();
   for (int i = 0; i < 26; i++) {
     if (drives & (1 << i)) {
-      char rootPath[] = {(char)('A' + i), ':', '\\', '\0'};
-      UINT driveType = GetDriveTypeA(rootPath);
+      wchar_t rootPath[] = {static_cast<wchar_t>(L'A' + i), L':', L'\\', L'\0'};
+      UINT driveType = GetDriveTypeW(rootPath);
       
       flutter::EncodableMap volume;
-      volume[flutter::EncodableValue("mountPath")] = flutter::EncodableValue(std::string(rootPath));
+      volume[flutter::EncodableValue("mountPath")] =
+          flutter::EncodableValue(Utf8FromWide(rootPath));
       
-      char volumeName[MAX_PATH + 1] = {0};
-      if (GetVolumeInformationA(rootPath, volumeName, MAX_PATH + 1, NULL, NULL, NULL, NULL, 0)) {
-        std::string volStr = std::string(volumeName);
+      wchar_t volumeName[MAX_PATH + 1] = {0};
+      if (GetVolumeInformationW(rootPath, volumeName, MAX_PATH + 1, NULL, NULL, NULL, NULL, 0)) {
+        std::string volStr = Utf8FromWide(volumeName);
         if (volStr.empty()) {
             volStr = "Local Disk";
         }
@@ -297,7 +352,7 @@ flutter::EncodableMap FlutterDeviceInfoPlusPlugin::GetDeviceInfo() {
       }
 
       ULARGE_INTEGER freeBytes, totalBytes;
-      if (GetDiskFreeSpaceExA(rootPath, &freeBytes, &totalBytes, NULL)) {
+      if (GetDiskFreeSpaceExW(rootPath, &freeBytes, &totalBytes, NULL)) {
         volume[flutter::EncodableValue("totalCapacity")] = flutter::EncodableValue((int64_t)totalBytes.QuadPart);
         volume[flutter::EncodableValue("availableCapacity")] = flutter::EncodableValue((int64_t)freeBytes.QuadPart);
         volume[flutter::EncodableValue("usedCapacity")] = flutter::EncodableValue((int64_t)(totalBytes.QuadPart - freeBytes.QuadPart));
@@ -526,16 +581,16 @@ int FlutterDeviceInfoPlusPlugin::GetProcessorCoreCount() {
 
 std::string FlutterDeviceInfoPlusPlugin::GetProcessorName() {
   HKEY hKey;
-  char processorName[256] = {0};
+  wchar_t processorName[256] = {0};
   DWORD size = sizeof(processorName);
   
-  if (RegOpenKeyExA(HKEY_LOCAL_MACHINE,
-                    "HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0",
+  if (RegOpenKeyExW(HKEY_LOCAL_MACHINE,
+                    L"HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0",
                     0, KEY_READ, &hKey) == ERROR_SUCCESS) {
-    if (RegQueryValueExA(hKey, "ProcessorNameString", NULL, NULL,
+    if (RegQueryValueExW(hKey, L"ProcessorNameString", NULL, NULL,
                          (LPBYTE)processorName, &size) == ERROR_SUCCESS) {
       RegCloseKey(hKey);
-      return std::string(processorName);
+      return Utf8FromWide(processorName);
     }
     RegCloseKey(hKey);
   }
