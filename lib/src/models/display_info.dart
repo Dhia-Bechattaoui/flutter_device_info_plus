@@ -15,6 +15,7 @@ class DisplayInfo {
     required this.screenSizeInches,
     required this.orientation,
     required this.isHdr,
+    this.isPrimary = true,
   });
 
   /// Screen width in pixels.
@@ -37,6 +38,9 @@ class DisplayInfo {
 
   /// Whether the display supports HDR.
   final bool isHdr;
+
+  /// Whether this is the primary display.
+  final bool isPrimary;
 
   /// Gets the aspect ratio of the screen.
   double get aspectRatio => screenHeight == 0 ? 0 : screenWidth / screenHeight;
@@ -65,6 +69,7 @@ class DisplayInfo {
     final double? screenSizeInches,
     final String? orientation,
     final bool? isHdr,
+    final bool? isPrimary,
   }) => DisplayInfo(
     screenWidth: screenWidth ?? this.screenWidth,
     screenHeight: screenHeight ?? this.screenHeight,
@@ -73,6 +78,7 @@ class DisplayInfo {
     screenSizeInches: screenSizeInches ?? this.screenSizeInches,
     orientation: orientation ?? this.orientation,
     isHdr: isHdr ?? this.isHdr,
+    isPrimary: isPrimary ?? this.isPrimary,
   );
 
   @override
@@ -88,7 +94,8 @@ class DisplayInfo {
         other.refreshRate == refreshRate &&
         other.screenSizeInches == screenSizeInches &&
         other.orientation == orientation &&
-        other.isHdr == isHdr;
+        other.isHdr == isHdr &&
+        other.isPrimary == isPrimary;
   }
 
   @override
@@ -100,6 +107,7 @@ class DisplayInfo {
     screenSizeInches,
     orientation,
     isHdr,
+    isPrimary,
   );
 
   @override
@@ -111,6 +119,7 @@ class DisplayInfo {
       'refreshRate: $refreshRate, '
       'screenSizeInches: $screenSizeInches, '
       'orientation: $orientation, '
-      'isHdr: $isHdr'
+      'isHdr: $isHdr, '
+      'isPrimary: $isPrimary'
       ')';
 }

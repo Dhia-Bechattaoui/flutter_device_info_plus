@@ -600,16 +600,53 @@ static FlValue* GetDeviceInfo() {
   SetMapValue(memoryInfo, "memoryUsagePercentage", CreateDoubleValue(memUsage));
   SetMapValue(deviceInfo, "memoryInfo", memoryInfo);
   
-  // Display info (approximate)
-  FlValue* displayInfo = CreateMapValue();
-  SetMapValue(displayInfo, "screenWidth", CreateIntValue(1920));
-  SetMapValue(displayInfo, "screenHeight", CreateIntValue(1080));
-  SetMapValue(displayInfo, "pixelDensity", CreateDoubleValue(1.0));
-  SetMapValue(displayInfo, "refreshRate", CreateDoubleValue(60.0));
-  SetMapValue(displayInfo, "screenSizeInches", CreateDoubleValue(24.0));
-  SetMapValue(displayInfo, "orientation", CreateStringValue("landscape"));
-  SetMapValue(displayInfo, "isHdr", CreateBoolValue(false));
-  SetMapValue(deviceInfo, "displayInfo", displayInfo);
+  // Display info
+  FlValue* displaysList = fl_value_new_list();
+  GdkDisplay* display = gdk_display_get_default();
+  if (display != nullptr) {
+    int n_monitors = gdk_display_get_n_monitors(display);
+    for (int i = 0; i < n_monitors; i++) {
+      GdkMonitor* monitor = gdk_display_get_monitor(display, i);
+      if (monitor == nullptr) continue;
+      
+      GdkRectangle geometry;
+      gdk_monitor_get_geometry(monitor, &geometry);
+      int scale = gdk_monitor_get_scale_factor(monitor);
+      int refresh_rate_mhz = gdk_monitor_get_refresh_rate(monitor);
+      double refreshRate = refresh_rate_mhz > 0 ? (refresh_rate_mhz / 1000.0) : 60.0;
+      bool isPrimary = gdk_monitor_is_primary(monitor);
+      
+      FlValue* dInfo = CreateMapValue();
+      SetMapValue(dInfo, "screenWidth", CreateIntValue(geometry.width * scale));
+      SetMapValue(dInfo, "screenHeight", CreateIntValue(geometry.height * scale));
+      SetMapValue(dInfo, "pixelDensity", CreateDoubleValue(static_cast<double>(scale)));
+      SetMapValue(dInfo, "refreshRate", CreateDoubleValue(refreshRate));
+      SetMapValue(dInfo, "screenSizeInches", CreateDoubleValue(24.0));
+      SetMapValue(dInfo, "orientation", CreateStringValue(geometry.width >= geometry.height ? "landscape" : "portrait"));
+      SetMapValue(dInfo, "isHdr", CreateBoolValue(false));
+      SetMapValue(dInfo, "isPrimary", CreateBoolValue(isPrimary));
+      
+      fl_value_append_take(displaysList, dInfo);
+    }
+  }
+
+  if (fl_value_get_length(displaysList) == 0) {
+    FlValue* displayInfo = CreateMapValue();
+    SetMapValue(displayInfo, "screenWidth", CreateIntValue(1920));
+    SetMapValue(displayInfo, "screenHeight", CreateIntValue(1080));
+    SetMapValue(displayInfo, "pixelDensity", CreateDoubleValue(1.0));
+    SetMapValue(displayInfo, "refreshRate", CreateDoubleValue(60.0));
+    SetMapValue(displayInfo, "screenSizeInches", CreateDoubleValue(24.0));
+    SetMapValue(displayInfo, "orientation", CreateStringValue("landscape"));
+    SetMapValue(displayInfo, "isHdr", CreateBoolValue(false));
+    SetMapValue(displayInfo, "isPrimary", CreateBoolValue(true));
+    fl_value_append_take(displaysList, displayInfo);
+  }
+
+  fl_value_set_string_take(deviceInfo, "displays", displaysList);
+  if (fl_value_get_length(displaysList) > 0) {
+    fl_value_set_string(deviceInfo, "displayInfo", fl_value_get_list_value(displaysList, 0));
+  }
   
   // Security info
   FlValue* securityInfo = CreateMapValue();

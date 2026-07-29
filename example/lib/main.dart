@@ -91,13 +91,15 @@ class _DeviceInfoScreenState extends State<DeviceInfoScreen> {
         debugPrint('  Removable: ${vol.isRemovable}');
       }
 
-      debugPrint('--- Display ---');
-      debugPrint(
-        'Screen: ${deviceInfo.displayInfo.screenWidth}x'
-        '${deviceInfo.displayInfo.screenHeight}',
-      );
-      debugPrint('Pixel Ratio: ${deviceInfo.displayInfo.pixelDensity}');
-      debugPrint('Refresh Rate: ${deviceInfo.displayInfo.refreshRate}');
+      debugPrint('--- Displays (${deviceInfo.displays.length}) ---');
+      for (var i = 0; i < deviceInfo.displays.length; i++) {
+        final d = deviceInfo.displays[i];
+        debugPrint(
+          'Display ${i + 1}${d.isPrimary ? ' (Primary)' : ''}: '
+          '${d.screenWidth}x${d.screenHeight}, '
+          '${d.pixelDensity}x, ${d.refreshRate}Hz',
+        );
+      }
 
       debugPrint('--- Battery ---');
       if (batteryInfo != null) {
@@ -440,19 +442,26 @@ class _DeviceInfoScreenState extends State<DeviceInfoScreen> {
   }
 
   List<_InfoItem> _buildDisplayItems(final DeviceInformation info) {
-    final display = info.displayInfo;
-    return [
-      _InfoItem('Resolution', display.resolutionString),
-      _InfoItem('Pixel Density', '${display.pixelDensity.toStringAsFixed(2)}x'),
-      _InfoItem('PPI', display.pixelsPerInch.toStringAsFixed(0)),
-      _InfoItem('Refresh Rate', '${display.refreshRate} Hz'),
-      _InfoItem(
-        'Screen Size',
-        '${display.screenSizeInches.toStringAsFixed(1)}"',
-      ),
-      _InfoItem('Orientation', display.orientation),
-      _InfoItem('HDR Support', display.isHdr ? 'Yes' : 'No'),
+    final items = <_InfoItem>[
+      _InfoItem('Total Displays', '${info.displays.length}'),
     ];
+
+    for (var i = 0; i < info.displays.length; i++) {
+      final display = info.displays[i];
+      final prefix = 'Display ${i + 1}${display.isPrimary ? ' (Primary)' : ''}';
+      items.addAll([
+        _InfoItem('$prefix Resolution', display.resolutionString),
+        _InfoItem(
+          '$prefix Density',
+          '${display.pixelDensity.toStringAsFixed(2)}x',
+        ),
+        _InfoItem('$prefix Refresh Rate', '${display.refreshRate} Hz'),
+        _InfoItem('$prefix Orientation', display.orientation),
+        _InfoItem('$prefix HDR', display.isHdr ? 'Yes' : 'No'),
+      ]);
+    }
+
+    return items;
   }
 
   Widget _buildInfoCard(

@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2026-07-29
+
+### Added
+- **Multi-Monitor Support**: Added multi-screen display retrieval support (`displays` property in `DeviceInformation`) across Windows, macOS, and Linux desktop environments (Thanks to @mengzhidaren - Issue #11).
+- **Primary Display Flag**: Added `isPrimary` boolean field to `DisplayInfo` to distinguish main monitors from extended displays.
+
+### Changed
+- **BREAKING CHANGE**: Replaced `final DisplayInfo displayInfo;` in `DeviceInformation` constructor with `final List<DisplayInfo> displays;`. A backward-compatible `displayInfo` getter is provided which returns the primary or first display.
+
 ## [0.6.0] - 2026-07-28
 
 ### Added
@@ -402,7 +411,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ✅ macOS (macOS 10.14+)
 - ✅ Linux (Ubuntu 18.04+)
 
-[Unreleased]: https://github.com/Dhia-Bechattaoui/flutter_device_info_plus/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/Dhia-Bechattaoui/flutter_device_info_plus/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/Dhia-Bechattaoui/flutter_device_info_plus/compare/v0.6.0...v0.7.0
+[0.6.0]: https://github.com/Dhia-Bechattaoui/flutter_device_info_plus/compare/v0.5.0...v0.6.0
 [0.4.0]: https://github.com/Dhia-Bechattaoui/flutter_device_info_plus/compare/v0.3.3...v0.4.0
 [0.3.3]: https://github.com/Dhia-Bechattaoui/flutter_device_info_plus/compare/v0.3.2...v0.3.3
 [0.3.2]: https://github.com/Dhia-Bechattaoui/flutter_device_info_plus/compare/v0.3.1...v0.3.2

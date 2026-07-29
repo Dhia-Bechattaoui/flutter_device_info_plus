@@ -149,6 +149,17 @@ class FlutterDeviceInfoPlusPlugin : FlutterPlugin, MethodChannel.MethodCallHandl
         val deviceId = Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID) ?: "Unknown"
         val deviceName = Settings.Global.getString(context.contentResolver, Settings.Global.DEVICE_NAME) ?: Build.MODEL ?: "Unknown"
 
+        val displayInfoMap = mapOf(
+            "screenWidth" to displayMetrics.widthPixels,
+            "screenHeight" to displayMetrics.heightPixels,
+            "pixelDensity" to (displayMetrics.densityDpi / 160.0),
+            "refreshRate" to windowManager.defaultDisplay.refreshRate.toDouble(),
+            "screenSizeInches" to calculateScreenSizeInches(displayMetrics.widthPixels, displayMetrics.heightPixels, displayMetrics.densityDpi),
+            "orientation" to if (displayMetrics.widthPixels > displayMetrics.heightPixels) "landscape" else "portrait",
+            "isHdr" to (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && windowManager.defaultDisplay.hdrCapabilities != null),
+            "isPrimary" to true
+        )
+
         return mapOf(
             "deviceId" to deviceId,
             "deviceName" to deviceName,
@@ -169,15 +180,8 @@ class FlutterDeviceInfoPlusPlugin : FlutterPlugin, MethodChannel.MethodCallHandl
                 "memoryUsagePercentage" to ((memInfo.totalMem - memInfo.availMem).toDouble() / memInfo.totalMem * 100)
             ),
             "storageInfo" to storageInfo,
-            "displayInfo" to mapOf(
-                "screenWidth" to displayMetrics.widthPixels,
-                "screenHeight" to displayMetrics.heightPixels,
-                "pixelDensity" to (displayMetrics.densityDpi / 160.0),
-                "refreshRate" to windowManager.defaultDisplay.refreshRate.toDouble(),
-                "screenSizeInches" to calculateScreenSizeInches(displayMetrics.widthPixels, displayMetrics.heightPixels, displayMetrics.densityDpi),
-                "orientation" to if (displayMetrics.widthPixels > displayMetrics.heightPixels) "landscape" else "portrait",
-                "isHdr" to (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && windowManager.defaultDisplay.hdrCapabilities != null)
-            ),
+            "displays" to listOf(displayInfoMap),
+            "displayInfo" to displayInfoMap,
             "securityInfo" to getSecurityInfo()
         )
     }

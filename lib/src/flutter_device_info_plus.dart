@@ -72,9 +72,7 @@ class FlutterDeviceInfoPlus {
         storageInfo: _parseStorageInfo(
           data['storageInfo'] as Map<dynamic, dynamic>?,
         ),
-        displayInfo: _parseDisplayInfo(
-          data['displayInfo'] as Map<dynamic, dynamic>?,
-        ),
+        displays: _parseDisplays(data),
         batteryInfo: batteryInfo,
         sensorInfo: sensorInfo,
         networkInfo: networkInfo,
@@ -85,6 +83,16 @@ class FlutterDeviceInfoPlus {
     } catch (e) {
       throw DeviceInfoException('Failed to get device information: $e');
     }
+  }
+
+  List<DisplayInfo> _parseDisplays(final Map<dynamic, dynamic> data) {
+    final displaysList = data['displays'] as List<dynamic>?;
+    if (displaysList != null && displaysList.isNotEmpty) {
+      return displaysList
+          .map((final e) => _parseDisplayInfo(e as Map<dynamic, dynamic>?))
+          .toList();
+    }
+    return [_parseDisplayInfo(data['displayInfo'] as Map<dynamic, dynamic>?)];
   }
 
   /// Gets the current platform name as a string.
@@ -275,6 +283,7 @@ class FlutterDeviceInfoPlus {
         screenSizeInches: 0,
         orientation: 'portrait',
         isHdr: false,
+        isPrimary: true,
       );
     }
 
@@ -286,6 +295,7 @@ class FlutterDeviceInfoPlus {
       screenSizeInches: (data['screenSizeInches'] as num?)?.toDouble() ?? 0.0,
       orientation: data['orientation'] as String? ?? 'portrait',
       isHdr: data['isHdr'] as bool? ?? false,
+      isPrimary: data['isPrimary'] as bool? ?? true,
     );
   }
 

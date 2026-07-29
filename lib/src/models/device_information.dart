@@ -29,7 +29,7 @@ class DeviceInformation {
     required this.processorInfo,
     required this.memoryInfo,
     required this.storageInfo,
-    required this.displayInfo,
+    required this.displays,
     required this.sensorInfo,
     required this.networkInfo,
     required this.securityInfo,
@@ -73,8 +73,24 @@ class DeviceInformation {
   /// Storage volumes information.
   final StorageInfo storageInfo;
 
-  /// Display and screen information.
-  final DisplayInfo displayInfo;
+  /// List of displays and screen information.
+  final List<DisplayInfo> displays;
+
+  /// Primary display information (for backward compatibility).
+  DisplayInfo get displayInfo => displays.firstWhere(
+    (final d) => d.isPrimary,
+    orElse: () => displays.isNotEmpty
+        ? displays.first
+        : const DisplayInfo(
+            screenWidth: 0,
+            screenHeight: 0,
+            pixelDensity: 1,
+            refreshRate: 60,
+            screenSizeInches: 0,
+            orientation: 'landscape',
+            isHdr: false,
+          ),
+  );
 
   /// Battery information (null if not available).
   final BatteryInfo? batteryInfo;
@@ -102,7 +118,7 @@ class DeviceInformation {
     final ProcessorInfo? processorInfo,
     final MemoryInfo? memoryInfo,
     final StorageInfo? storageInfo,
-    final DisplayInfo? displayInfo,
+    final List<DisplayInfo>? displays,
     final BatteryInfo? batteryInfo,
     final SensorInfo? sensorInfo,
     final NetworkInfo? networkInfo,
@@ -120,7 +136,7 @@ class DeviceInformation {
     processorInfo: processorInfo ?? this.processorInfo,
     memoryInfo: memoryInfo ?? this.memoryInfo,
     storageInfo: storageInfo ?? this.storageInfo,
-    displayInfo: displayInfo ?? this.displayInfo,
+    displays: displays ?? this.displays,
     batteryInfo: batteryInfo ?? this.batteryInfo,
     sensorInfo: sensorInfo ?? this.sensorInfo,
     networkInfo: networkInfo ?? this.networkInfo,
@@ -146,7 +162,7 @@ class DeviceInformation {
         other.processorInfo == processorInfo &&
         other.memoryInfo == memoryInfo &&
         other.storageInfo == storageInfo &&
-        other.displayInfo == displayInfo &&
+        listEquals(other.displays, displays) &&
         other.batteryInfo == batteryInfo &&
         other.sensorInfo == sensorInfo &&
         other.networkInfo == networkInfo &&
@@ -167,7 +183,7 @@ class DeviceInformation {
     processorInfo,
     memoryInfo,
     storageInfo,
-    displayInfo,
+    Object.hashAll(displays),
     batteryInfo,
     sensorInfo,
     networkInfo,
@@ -189,7 +205,7 @@ class DeviceInformation {
       'processorInfo: $processorInfo, '
       'memoryInfo: $memoryInfo, '
       'storageInfo: $storageInfo, '
-      'displayInfo: $displayInfo, '
+      'displays: $displays, '
       'batteryInfo: $batteryInfo, '
       'sensorInfo: $sensorInfo, '
       'networkInfo: $networkInfo, '

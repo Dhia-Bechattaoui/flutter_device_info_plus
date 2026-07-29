@@ -54,7 +54,7 @@ public class FlutterDeviceInfoPlusPlugin: NSObject, FlutterPlugin {
     
     let processorInfo = getProcessorInfo()
     let memoryInfo = getMemoryInfo()
-    let displayInfo = getDisplayInfo()
+    let displaysInfo = getDisplaysInfo()
     let securityInfo = getSecurityInfo()
     
     return [
@@ -69,7 +69,8 @@ public class FlutterDeviceInfoPlusPlugin: NSObject, FlutterPlugin {
       "kernelVersion": getKernelVersion(),
       "processorInfo": processorInfo,
       "memoryInfo": memoryInfo,
-      "displayInfo": displayInfo,
+      "displays": displaysInfo,
+      "displayInfo": displaysInfo.first ?? [:],
       "securityInfo": securityInfo
     ]
   }
@@ -222,45 +223,44 @@ public class FlutterDeviceInfoPlusPlugin: NSObject, FlutterPlugin {
     ]
   }
   
-  private func getDisplayInfo() -> [String: Any] {
-    let screen = NSScreen.main ?? NSScreen.screens.first ?? NSScreen()
-    let frame = screen.frame
-    let scale = screen.backingScaleFactor
+  private func getDisplaysInfo() -> [[String: Any]] {
+    let screens = NSScreen.screens
+    guard !screens.isEmpty else { return [] }
     
-    // Get refresh rate (default to 60Hz for macOS)
-    let refreshRate: Double = 60.0
+    let mainScreen = NSScreen.main ?? screens.first
     
-    // Calculate screen size in inches (approximate)
-    let widthInches = Double(frame.width) / scale / 72.0
-    let heightInches = Double(frame.height) / scale / 72.0
-    let screenSizeInches = sqrt(widthInches * widthInches + heightInches * heightInches)
-    
-    // Check HDR support
-    // On macOS, we check if the display supports wide color gamut
-    var isHdr = false
-    if let colorSpace = screen.colorSpace {
-      // Check color space model and component count as indicators of HDR support
-      // Wide gamut color spaces typically have more components
-      if colorSpace.colorSpaceModel == .rgb {
-        // Display P3 and Extended sRGB are wide gamut color spaces
-        // We can check by comparing with known wide gamut color spaces
-        let displayP3 = NSColorSpace.displayP3
-        let extendedSRGB = NSColorSpace.extendedSRGB
-        isHdr = (colorSpace == displayP3 || colorSpace == extendedSRGB)
+    return screens.map { screen in
+      let frame = screen.frame
+      let scale = screen.backingScaleFactor
+      let refreshRate: Double = 60.0
+      
+      let widthInches = Double(frame.width) / scale / 72.0
+      let heightInches = Double(frame.height) / scale / 72.0
+      let screenSizeInches = sqrt(widthInches * widthInches + heightInches * heightInches)
+      
+      var isHdr = false
+      if let colorSpace = screen.colorSpace {
+        if colorSpace.colorSpaceModel == .rgb {
+          let displayP3 = NSColorSpace.displayP3
+          let extendedSRGB = NSColorSpace.extendedSRGB
+          isHdr = (colorSpace == displayP3 || colorSpace == extendedSRGB)
+        }
       }
+      
+      let orientation = frame.width > frame.height ? "landscape" : "portrait"
+      let isPrimary = (screen == mainScreen)
+      
+      return [
+        "screenWidth": Int(frame.width),
+        "screenHeight": Int(frame.height),
+        "pixelDensity": Double(scale),
+        "refreshRate": refreshRate,
+        "screenSizeInches": screenSizeInches,
+        "orientation": orientation,
+        "isHdr": isHdr,
+        "isPrimary": isPrimary
+      ]
     }
-    
-    let orientation = frame.width > frame.height ? "landscape" : "portrait"
-    
-    return [
-      "screenWidth": Int(frame.width),
-      "screenHeight": Int(frame.height),
-      "pixelDensity": Double(scale),
-      "refreshRate": refreshRate,
-      "screenSizeInches": screenSizeInches,
-      "orientation": orientation,
-      "isHdr": isHdr
-    ]
   }
   
   private func getBatteryInfo() -> [String: Any]? {

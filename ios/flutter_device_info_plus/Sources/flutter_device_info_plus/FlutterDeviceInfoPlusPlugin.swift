@@ -69,6 +69,7 @@ public class FlutterDeviceInfoPlusPlugin: NSObject, FlutterPlugin {
       "processorInfo": processorInfo,
       "memoryInfo": memoryInfo,
       "storageInfo": storageInfo,
+      "displays": [displayInfo],
       "displayInfo": displayInfo,
       "securityInfo": securityInfo
     ]
@@ -286,7 +287,8 @@ public class FlutterDeviceInfoPlusPlugin: NSObject, FlutterPlugin {
       "refreshRate": refreshRate,
       "screenSizeInches": screenSizeInches,
       "orientation": orientation,
-      "isHdr": isHdr
+      "isHdr": isHdr,
+      "isPrimary": true
     ]
   }
   

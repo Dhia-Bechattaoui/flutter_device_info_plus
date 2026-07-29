@@ -382,20 +382,74 @@ flutter::EncodableMap FlutterDeviceInfoPlusPlugin::GetDeviceInfo() {
 
   
   // Graphics display environment specifications mapping
-  flutter::EncodableMap displayInfo;
-  int width = GetScreenWidth();
-  int height = GetScreenHeight();
-  double density = GetPixelDensity();
-  double refreshRate = GetRefreshRate();
+  flutter::EncodableList displaysList;
   
-  displayInfo[flutter::EncodableValue("screenWidth")] = flutter::EncodableValue(width);
-  displayInfo[flutter::EncodableValue("screenHeight")] = flutter::EncodableValue(height);
-  displayInfo[flutter::EncodableValue("pixelDensity")] = flutter::EncodableValue(density);
-  displayInfo[flutter::EncodableValue("refreshRate")] = flutter::EncodableValue(refreshRate);
-  displayInfo[flutter::EncodableValue("screenSizeInches")] = flutter::EncodableValue(24.0);
-  displayInfo[flutter::EncodableValue("orientation")] = flutter::EncodableValue(width > height ? "landscape" : "portrait");
-  displayInfo[flutter::EncodableValue("isHdr")] = flutter::EncodableValue(false);
-  deviceInfo[flutter::EncodableValue("displayInfo")] = flutter::EncodableValue(displayInfo);
+  auto monitorEnumProc = [](HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMonitor, LPARAM dwData) -> BOOL {
+    auto* list = reinterpret_cast<flutter::EncodableList*>(dwData);
+    
+    MONITORINFOEXA info;
+    info.cbSize = sizeof(MONITORINFOEXA);
+    if (GetMonitorInfoA(hMonitor, &info)) {
+      DEVMODEA devMode;
+      devMode.dmSize = sizeof(DEVMODEA);
+      devMode.dmDriverExtra = 0;
+      
+      int width = info.rcMonitor.right - info.rcMonitor.left;
+      int height = info.rcMonitor.bottom - info.rcMonitor.top;
+      double refreshRate = 60.0;
+      
+      if (EnumDisplaySettingsA(info.szDevice, ENUM_CURRENT_SETTINGS, &devMode)) {
+        width = devMode.dmPelsWidth;
+        height = devMode.dmPelsHeight;
+        if (devMode.dmDisplayFrequency > 0) {
+          refreshRate = static_cast<double>(devMode.dmDisplayFrequency);
+        }
+      }
+
+      HDC hdc = GetDC(NULL);
+      int dpi = GetDeviceCaps(hdc, LOGPIXELSX);
+      ReleaseDC(NULL, hdc);
+      double density = dpi / 96.0;
+
+      bool isPrimary = (info.dwFlags & MONITORINFOF_PRIMARY) != 0;
+
+      flutter::EncodableMap displayMap;
+      displayMap[flutter::EncodableValue("screenWidth")] = flutter::EncodableValue(width);
+      displayMap[flutter::EncodableValue("screenHeight")] = flutter::EncodableValue(height);
+      displayMap[flutter::EncodableValue("pixelDensity")] = flutter::EncodableValue(density);
+      displayMap[flutter::EncodableValue("refreshRate")] = flutter::EncodableValue(refreshRate);
+      displayMap[flutter::EncodableValue("screenSizeInches")] = flutter::EncodableValue(24.0);
+      displayMap[flutter::EncodableValue("orientation")] = flutter::EncodableValue(width > height ? "landscape" : "portrait");
+      displayMap[flutter::EncodableValue("isHdr")] = flutter::EncodableValue(false);
+      displayMap[flutter::EncodableValue("isPrimary")] = flutter::EncodableValue(isPrimary);
+
+      list->push_back(flutter::EncodableValue(displayMap));
+    }
+    return TRUE;
+  };
+
+  EnumDisplayMonitors(NULL, NULL, monitorEnumProc, reinterpret_cast<LPARAM>(&displaysList));
+
+  if (displaysList.empty()) {
+    int width = GetScreenWidth();
+    int height = GetScreenHeight();
+    double density = GetPixelDensity();
+    double refreshRate = GetRefreshRate();
+    
+    flutter::EncodableMap displayInfo;
+    displayInfo[flutter::EncodableValue("screenWidth")] = flutter::EncodableValue(width);
+    displayInfo[flutter::EncodableValue("screenHeight")] = flutter::EncodableValue(height);
+    displayInfo[flutter::EncodableValue("pixelDensity")] = flutter::EncodableValue(density);
+    displayInfo[flutter::EncodableValue("refreshRate")] = flutter::EncodableValue(refreshRate);
+    displayInfo[flutter::EncodableValue("screenSizeInches")] = flutter::EncodableValue(24.0);
+    displayInfo[flutter::EncodableValue("orientation")] = flutter::EncodableValue(width > height ? "landscape" : "portrait");
+    displayInfo[flutter::EncodableValue("isHdr")] = flutter::EncodableValue(false);
+    displayInfo[flutter::EncodableValue("isPrimary")] = flutter::EncodableValue(true);
+    displaysList.push_back(flutter::EncodableValue(displayInfo));
+  }
+
+  deviceInfo[flutter::EncodableValue("displays")] = flutter::EncodableValue(displaysList);
+  deviceInfo[flutter::EncodableValue("displayInfo")] = displaysList.front();
   
   // Security capabilities parameters definition
   flutter::EncodableMap securityInfo;
