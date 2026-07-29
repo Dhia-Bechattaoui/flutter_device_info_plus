@@ -623,8 +623,10 @@ class FlutterDeviceInfoPlusPlugin extends FlutterDeviceInfoPlusPlatform {
 /// Extension for [web.Navigator] to include network connection information.
 extension type NavigatorWithConnection(
   /// The underlying [web.Navigator].
-  web.Navigator navigator
-) implements web.Navigator {
+  web.Navigator
+  navigator
+)
+    implements web.Navigator {
   /// Returns the current network connection information.
   external JSNetworkInformation? get connection;
 }
@@ -633,8 +635,10 @@ extension type NavigatorWithConnection(
 /// information.
 extension type NavigatorWithUAData(
   /// The underlying [web.Navigator].
-  web.Navigator navigator
-) implements web.Navigator {
+  web.Navigator
+  navigator
+)
+    implements web.Navigator {
   /// Returns the User Agent Client Hints data.
   external UAData? get userAgentData;
 }
@@ -642,8 +646,10 @@ extension type NavigatorWithUAData(
 /// JS interop for the NavigatorUAData object (Client Hints).
 extension type UAData(
   /// The underlying JS object.
-  JSObject _
-) implements JSObject {
+  JSObject
+  _
+)
+    implements JSObject {
   /// Returns high-entropy values for the user agent.
   external JSPromise<UADataValues> getHighEntropyValues(final JSObject hints);
 }
@@ -651,8 +657,10 @@ extension type UAData(
 /// JS interop for the high-entropy values returned by UAData.
 extension type UADataValues(
   /// The underlying JS object.
-  JSObject _
-) implements JSObject {
+  JSObject
+  _
+)
+    implements JSObject {
   /// The platform version.
   external String? get platformVersion;
 
@@ -672,8 +680,10 @@ extension type UADataValues(
 /// JS interop for the browser brand and version information.
 extension type UABrandVersion(
   /// The underlying JS object.
-  JSObject _
-) implements JSObject {
+  JSObject
+  _
+)
+    implements JSObject {
   /// The brand name.
   external String get brand;
 
@@ -684,8 +694,10 @@ extension type UABrandVersion(
 /// JS interop for the NetworkInformation object.
 extension type JSNetworkInformation(
   /// The underlying JS object.
-  JSObject _
-) implements JSObject {
+  JSObject
+  _
+)
+    implements JSObject {
   /// The effective type of the connection meaning one of 'slow-2g', '2g', '3g',
   /// or '4g'.
   external String? get effectiveType;
@@ -700,8 +712,10 @@ extension type JSNetworkInformation(
 /// Extension for [web.Navigator] to include device memory information.
 extension type NavigatorWithMemory(
   /// The underlying [web.Navigator].
-  web.Navigator navigator
-) implements web.Navigator {
+  web.Navigator
+  navigator
+)
+    implements web.Navigator {
   /// Returns the approximate amount of device memory in gigabytes.
   external double? get deviceMemory;
 }
@@ -709,8 +723,10 @@ extension type NavigatorWithMemory(
 /// Extension for [web.Navigator] to include storage manager information.
 extension type NavigatorWithStorage(
   /// The underlying [web.Navigator].
-  web.Navigator navigator
-) implements web.Navigator {
+  web.Navigator
+  navigator
+)
+    implements web.Navigator {
   /// Returns the [StorageManager] for the current context.
   external StorageManager get storage;
 }
@@ -718,8 +734,10 @@ extension type NavigatorWithStorage(
 /// JS interop for the StorageManager object.
 extension type StorageManager(
   /// The underlying JS object.
-  JSObject _
-) implements JSObject {
+  JSObject
+  _
+)
+    implements JSObject {
   /// Returns an estimate of storage quota and usage.
   external JSPromise<StorageEstimate> estimate();
 }
@@ -727,8 +745,10 @@ extension type StorageManager(
 /// JS interop for the StorageEstimate object.
 extension type StorageEstimate(
   /// The underlying JS object.
-  JSObject _
-) implements JSObject {
+  JSObject
+  _
+)
+    implements JSObject {
   /// The estimated storage quota in bytes.
   external int? get quota;
 
@@ -739,8 +759,10 @@ extension type StorageEstimate(
 /// Extension for [web.Navigator] to include battery information.
 extension type NavigatorWithBattery(
   /// The underlying [web.Navigator].
-  web.Navigator navigator
-) implements web.Navigator {
+  web.Navigator
+  navigator
+)
+    implements web.Navigator {
   /// Returns a [JSPromise] that resolves with a [BatteryManager] object.
   ///
   /// See: [Battery Status API](https://developer.mozilla.org/en-US/docs/Web/API/Battery_Status_API)
@@ -750,8 +772,10 @@ extension type NavigatorWithBattery(
 /// JS interop for the BatteryManager object from the Battery Status API.
 extension type BatteryManager(
   /// The underlying JS object.
-  JSObject _
-) implements JSObject {
+  JSObject
+  _
+)
+    implements JSObject {
   /// Whether the battery is currently being charged.
   external bool get charging;
 
@@ -769,8 +793,10 @@ extension type BatteryManager(
 /// JS interop for the RTCPeerConnection object.
 extension type RTCPeerConnection._(
   /// The underlying JS object.
-  JSObject _
-) implements JSObject {
+  JSObject
+  _
+)
+    implements JSObject {
   /// Creates a new RTCPeerConnection instance.
   external factory RTCPeerConnection([final JSAny? configuration]);
 
@@ -798,14 +824,18 @@ extension type RTCPeerConnection._(
 /// JS interop for the RTCSessionDescription object.
 extension type RTCSessionDescription(
   /// The underlying JS object.
-  JSObject _
-) implements JSObject {}
+  JSObject
+  _
+)
+    implements JSObject {}
 
 /// JS interop for the RTCIceCandidate object.
 extension type RTCIceCandidate(
   /// The underlying JS object.
-  JSObject _
-) implements JSObject {
+  JSObject
+  _
+)
+    implements JSObject {
   /// The candidate string.
   external String? get candidate;
 }
@@ -813,8 +843,10 @@ extension type RTCIceCandidate(
 /// JS interop for the RTCPeerConnectionIceEvent object.
 extension type RTCPeerConnectionIceEvent(
   /// The underlying JS object.
-  JSObject _
-) implements JSObject {
+  JSObject
+  _
+)
+    implements JSObject {
   /// The ICE candidate associated with the event.
   external RTCIceCandidate? get candidate;
 }
