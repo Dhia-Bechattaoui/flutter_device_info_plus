@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.1] - 2026-08-07
+
+### Fixed
+- **Built-in Kotlin Migration**: Updated Android configuration to support Flutter's Built-in Kotlin standard by removing plugin-level KGP `buildscript` dependencies and `kotlin-android` plugin application in `android/build.gradle`. Fixes KGP deprecation warnings on modern Flutter toolchains (Issue #12).
+
 ## [0.7.0] - 2026-07-29
 
 ### Added
